@@ -164,7 +164,7 @@ window.ICN_DEBUG = {
   
   // Exposer le StorageManager globalement
   window.ICN_STORAGE = StorageManager;
-  console.log('[ICN-STORAGE] ✓ Storage manager initialized with fallback support');
+  window.ICN_DEBUG.log('[ICN-STORAGE] ✓ Storage manager initialized with fallback support');
 })();
 
 window.ICN_CONST = {
