@@ -1,0 +1,64 @@
+{
+  "manifest_version": 2,
+  "name": "OLAF x CIEL",
+  "version": "0.1.0",
+  "description": "cd Ajoute des contours colorés (vert=conforme, rouge=manquant, violet=inversé) pour faciliter la vérification des congés alpha et beta.",
+
+  "author": "Dewey",
+  
+  "homepage_url": "https://github.com/22dewey22/olafxciel",
+
+  "icons": {
+    "32": "icons/icon-32.png",
+    "128": "icons/icon-128.png"
+  },
+
+  "permissions": [
+    "storage",
+    "tabs",
+    "activeTab",
+    "*://www.icnagenda.fr/ciel/*",
+    "*://icnagenda.fr/ciel/*",
+    "*://olafatco.dsna.aviation-civile.gouv.fr/*"
+  ],
+
+  "web_accessible_resources": [
+    "content/ui/templates/*.html",
+    "content/ui/templates/*.css"
+  ],
+
+  "browser_action": {
+    "default_title": "OLAF x CIEL - Comparateur de plannings"
+  },
+
+  "content_scripts": [
+    {
+      "matches": [
+        "*://www.icnagenda.fr/ciel/*",
+        "*://icnagenda.fr/ciel/*"
+      ],
+      "js": [
+        "shared/constants.js",
+        "shared/rules.js",
+        "shared/utils/text.js",
+        
+        "content/core/dom.js",
+        "content/core/classify.js",
+        
+        "content/agents/AgentCache.js",
+        "content/agents/agent-matcher.js",
+        
+        "content/services/OlafClient.js",
+        "content/services/CielParser.js",
+        "content/services/OutlineManager.js",
+        "content/services/TotalsManager.js",
+        
+        "content/ui/PanelUI.js",
+        "content/ui/PanelHandlers.js",
+        
+        "content/core/main.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}

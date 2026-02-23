@@ -1,0 +1,181 @@
+<div id="icn-panel" class="icn-panel">
+  <div id="icn-panel-header" class="icn-panel-header">
+    <div class="icn-panel-title">
+      <span>OLAF x CIEL</span>
+    </div>
+    <div class="icn-panel-actions">
+      <button id="icn-minimize" class="icn-btn-icon" title="Réduire">─</button>
+      <button id="icn-close" class="icn-btn-icon" title="Masquer">✕</button>
+    </div>
+  </div>
+  
+  <div id="icn-panel-body" class="icn-panel-body">
+    <!-- Section Contours -->
+    <div class="icn-section">
+      <div class="icn-section-header">
+        <span class="icn-section-title">Contours Alpha/Beta</span>
+      </div>
+      <div class="icn-toggle-container">
+        <label class="icn-toggle">
+          <input type="checkbox" id="icn-contours-toggle">
+          <span class="icn-toggle-slider"></span>
+        </label>
+        <span id="icn-contours-status" class="icn-status">Inactif</span>
+      </div>
+    </div>
+
+
+    <!-- Section OLAF -->
+    <div class="icn-section">
+      <div class="icn-section-header">
+        <span class="icn-section-title">Connexion OLAF</span>
+      </div>
+      <div class="icn-form">
+        <input type="text" id="icn-olaf-login" class="icn-input" placeholder="Login OLAF" autocomplete="off">
+        <input type="password" id="icn-olaf-pass" class="icn-input" placeholder="Mot de passe OLAF" autocomplete="new-password">
+        
+        <label class="icn-checkbox">
+          <input type="checkbox" id="icn-olaf-remember">
+          <span>Mémoriser</span>
+        </label>
+        
+        <!-- Toggle Auto-load -->
+        <div class="icn-toggle-container" style="margin-top: 12px;">
+          <label class="icn-toggle">
+            <input type="checkbox" id="icn-olaf-autoload">
+            <span class="icn-toggle-slider"></span>
+          </label>
+          <span id="icn-olaf-autoload-status" class="icn-status">Auto-chargement OLAF</span>
+        </div>
+        
+        <button id="icn-olaf-test" class="icn-btn icn-btn-secondary" style="margin-top: 8px;">🚀 Charger OLAF</button>
+        <div id="icn-olaf-status" class="icn-status-message"></div>
+      </div>
+    </div>
+
+    <!-- Section Rapports -->
+    <div class="icn-section">
+      <div class="icn-section-header">
+        <span class="icn-section-title">Comparaison OLAF</span>
+      </div>
+      <button id="icn-copy-diff" class="icn-btn icn-btn-primary">
+        <span>📋 Copier les différences</span>
+      </button>
+      <div id="icn-copy-status" class="icn-status-message"></div>
+    </div>
+  </div>
+
+  <!-- Settings Panel (caché à gauche) -->
+  <div id="icn-settings-panel" class="icn-settings-panel">
+    <!-- Onglet solidaire du panneau -->
+    <div id="icn-settings-tab" class="icn-settings-tab">
+      <span class="icn-settings-tab-icon">⚙️</span>
+      <span class="icn-settings-tab-text">Apprentissage</span>
+    </div>
+    
+    <!-- Contenu du panel settings -->
+    <div class="icn-settings-content">
+      <div class="icn-settings-header">
+        <span>⚙️ Apprentissage</span>
+      </div>
+      
+      <!-- Mode selector -->
+      <div class="icn-mode-selector">
+        <label class="icn-mode-btn">
+          <input type="radio" name="learning-mode" value="normal" checked>
+          <span class="icn-mode-label">
+            <span class="icn-mode-icon">⚪</span>
+            <span class="icn-mode-text">Normal</span>
+          </span>
+        </label>
+        
+        <label class="icn-mode-btn">
+          <input type="radio" name="learning-mode" value="alpha">
+          <span class="icn-mode-label">
+            <span class="icn-mode-icon">🟢</span>
+            <span class="icn-mode-text">Alpha</span>
+          </span>
+        </label>
+        
+        <label class="icn-mode-btn">
+          <input type="radio" name="learning-mode" value="beta">
+          <span class="icn-mode-label">
+            <span class="icn-mode-icon">🔵</span>
+            <span class="icn-mode-text">Beta</span>
+          </span>
+        </label>
+      </div>
+      
+      <!-- Instructions -->
+      <div id="icn-learning-instructions" style="display: none; padding: 8px; background: #fef3c7; border: 1px solid #fbbf24; border-radius: 4px; font-size: 11px; margin-bottom: 12px;">
+        Cliquez sur les cases du type sélectionné.
+      </div>
+      
+      <!-- Liste ALPHA -->
+      <div style="margin-bottom: 12px;">
+        <div style="font-size: 11px; font-weight: 600; color: #a0c4ff; margin-bottom: 4px;">
+          ALPHA (congés) : <span id="icn-alpha-count">0</span>
+        </div>
+        <div id="icn-alpha-list" style="max-height: 100px; overflow-y: auto; border: 1px solid rgba(100, 150, 255, 0.2); border-radius: 4px; padding: 4px; font-size: 10px; background: rgba(0, 0, 0, 0.2);">
+          <div style="color: #6b7280; text-align: center; padding: 8px;">Aucune classe</div>
+        </div>
+      </div>
+      
+      <!-- Liste BETA -->
+      <div>
+        <div style="font-size: 11px; font-weight: 600; color: #a0c4ff; margin-bottom: 4px;">
+          BETA (stages) : <span id="icn-beta-count">0</span>
+        </div>
+        <div id="icn-beta-list" style="max-height: 100px; overflow-y: auto; border: 1px solid rgba(100, 150, 255, 0.2); border-radius: 4px; padding: 4px; font-size: 10px; background: rgba(0, 0, 0, 0.2);">
+          <div style="color: #6b7280; text-align: center; padding: 8px;">Aucune classe</div>
+        </div>
+      </div>
+      <!-- Section Configuration Cycle -->
+    <div class="icn-section">
+     <!-- Date de début -->
+      <div style="margin-bottom: 12px;">
+        <div class="icn-settings-header">
+        <span>
+          Premier jour du cycle (J1)
+        </span>
+        </div>
+        <input type="date" id="icn-cycle-start-date" class="icn-input">
+      </div>
+      
+      <!-- Longueur du cycle -->
+      <div class="icn-settings-content">
+        <div class="icn-settings-header">
+          <span>Longueur du cycle</span>
+        </div>
+        <div class="icn-mode-selector">
+          <label class="icn-mode-btn">
+            <input type="radio" name="cycle-length" value="6">
+            <span class="icn-mode-label">
+              <span class="icn-mode-text">6 jours</span>
+            </span>
+          </label>
+            <label class="icn-mode-btn">
+            <input type="radio" name="cycle-length" value="12" checked>
+            <span class="icn-mode-label">
+              <span class="icn-mode-text">12 jours</span>
+            </span>
+          </label>
+        </div>
+      </div>
+      
+      <!-- Jours travaillés -->
+      <div class="icn-settings-content">
+        <div class="icn-settings-header">
+          <span>
+            Jours travaillés
+          </span>
+        </div>
+        <div id="icn-working-days-container" class="icn-mode-selector" style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px;">
+          <!-- Généré dynamiquement -->
+        </div>
+      </div>
+    </div>
+
+    </div>
+  </div>
+</div>

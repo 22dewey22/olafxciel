@@ -1,0 +1,66 @@
+<!-- Settings Panel (latéral rétractable) -->
+<div id="icn-settings-panel" class="icn-settings-panel">
+  <!-- Onglet cliquable -->
+  <div id="icn-settings-tab" class="icn-settings-tab">
+    <span class="icn-settings-tab-icon">⚙️</span>
+  </div>
+  
+  <!-- Contenu du panel settings -->
+  <div class="icn-settings-content">
+    <div class="icn-settings-header">
+      <span>⚙️ Settings</span>
+    </div>
+    
+    <!-- Mode selector -->
+    <div class="icn-mode-selector">
+      <label class="icn-mode-btn">
+        <input type="radio" name="learning-mode" value="normal" checked>
+        <span class="icn-mode-label">
+          <span class="icn-mode-icon">⚪</span>
+          <span class="icn-mode-text">Normal</span>
+        </span>
+      </label>
+      
+      <label class="icn-mode-btn">
+        <input type="radio" name="learning-mode" value="alpha">
+        <span class="icn-mode-label">
+          <span class="icn-mode-icon">🟢</span>
+          <span class="icn-mode-text">Alpha</span>
+        </span>
+      </label>
+      
+      <label class="icn-mode-btn">
+        <input type="radio" name="learning-mode" value="beta">
+        <span class="icn-mode-label">
+          <span class="icn-mode-icon">🔵</span>
+          <span class="icn-mode-text">Beta</span>
+        </span>
+      </label>
+    </div>
+    
+    <!-- Instructions -->
+    <div id="icn-learning-instructions" style="display: none; padding: 8px; background: #fef3c7; border: 1px solid #fbbf24; border-radius: 4px; font-size: 11px; margin-bottom: 12px;">
+      Cliquez sur les cases du type sélectionné.
+    </div>
+    
+    <!-- Liste ALPHA -->
+    <div style="margin-bottom: 12px;">
+      <div style="font-size: 11px; font-weight: 600; color: #a0c4ff; margin-bottom: 4px;">
+        ALPHA (congés) : <span id="icn-alpha-count">0</span>
+      </div>
+      <div id="icn-alpha-list" style="max-height: 100px; overflow-y: auto; border: 1px solid rgba(100, 150, 255, 0.2); border-radius: 4px; padding: 4px; font-size: 10px; background: rgba(0, 0, 0, 0.2);">
+        <div style="color: #6b7280; text-align: center; padding: 8px;">Aucune classe</div>
+      </div>
+    </div>
+    
+    <!-- Liste BETA -->
+    <div>
+      <div style="font-size: 11px; font-weight: 600; color: #a0c4ff; margin-bottom: 4px;">
+        BETA (stages) : <span id="icn-beta-count">0</span>
+      </div>
+      <div id="icn-beta-list" style="max-height: 100px; overflow-y: auto; border: 1px solid rgba(100, 150, 255, 0.2); border-radius: 4px; padding: 4px; font-size: 10px; background: rgba(0, 0, 0, 0.2);">
+        <div style="color: #6b7280; text-align: center; padding: 8px;">Aucune classe</div>
+      </div>
+    </div>
+  </div>
+</div>
