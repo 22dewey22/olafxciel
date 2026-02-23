@@ -72,7 +72,7 @@ class PanelHandlers {
             }
           }
         } catch (error) {
-          window.ICN_DEBUG.error('[ICN-PANEL] Toggle contours error:', error);
+          console.error('[ICN-PANEL] Toggle contours error:', error);
         }
       });
     }
@@ -84,7 +84,7 @@ class PanelHandlers {
         try {
           await window.ICN_STORAGE.set({ icn_olaf_autoload: e.target.checked });
         } catch (error) {
-          window.ICN_DEBUG.error('[ICN-PANEL] Auto-load toggle error:', error);
+          console.error('[ICN-PANEL] Auto-load toggle error:', error);
         }
       });
     }
@@ -101,7 +101,7 @@ class PanelHandlers {
             await window.ICN_STORAGE.remove('olaf_pass');
           }
         } catch (error) {
-          window.ICN_DEBUG.error('[ICN-PANEL] Remember toggle error:', error);
+          console.error('[ICN-PANEL] Remember toggle error:', error);
         }
       });
     }
@@ -110,6 +110,28 @@ class PanelHandlers {
     const testBtn = panel.querySelector('#icn-olaf-test');
     if (testBtn) {
       testBtn.addEventListener('click', () => this.handleOlafLoad());
+    }
+
+    // Toggle password visibility
+    const togglePasswordBtn = panel.querySelector('#icn-toggle-password');
+    const passwordInput = panel.querySelector('#icn-olaf-pass');
+    if (togglePasswordBtn && passwordInput) {
+      // Ajouter hover effect
+      togglePasswordBtn.addEventListener('mouseenter', () => {
+        togglePasswordBtn.style.background = 'rgba(0, 128, 255, 0.2)';
+        togglePasswordBtn.style.borderColor = 'rgba(0, 200, 255, 0.5)';
+      });
+      togglePasswordBtn.addEventListener('mouseleave', () => {
+        togglePasswordBtn.style.background = 'rgba(0, 0, 0, 0.2)';
+        togglePasswordBtn.style.borderColor = 'rgba(100, 150, 255, 0.3)';
+      });
+      
+      // Toggle visibility
+      togglePasswordBtn.addEventListener('click', () => {
+        const isPassword = passwordInput.type === 'password';
+        passwordInput.type = isPassword ? 'text' : 'password';
+        togglePasswordBtn.textContent = isPassword ? '🙈' : '👁️';
+      });
     }
 
     // Copy diff button
@@ -224,8 +246,8 @@ class PanelHandlers {
 
       this.showStatus(statusEl, '✅ Chargement terminé', 'success');
     } catch (err) {
-      window.ICN_DEBUG.error('[ICN-PANEL] handleOlafLoad error:', err);
-      window.ICN_DEBUG.error('[ICN-PANEL] Error message:', err.message);
+      console.error('[ICN-PANEL] handleOlafLoad error:', err);
+      console.error('[ICN-PANEL] Error message:', err.message);
       this.showStatus(statusEl, `❌ ${err.message}`, 'error');
     }
   }
@@ -415,7 +437,7 @@ class PanelHandlers {
     
     await window.ICN_STORAGE.set({ icn_cycle_config: config });
     
-    window.ICN_DEBUG.log('[ICN] Config cycle sauvegardée:', config);
+    console.log('[ICN] Config cycle sauvegardée:', config);
     
     // Rafraîchir les contours automatiquement
     const enabled = await window.ICN_STORAGE.get('icn_enabled');
@@ -500,8 +522,12 @@ class PanelHandlers {
     
     await this.updateLearningLists();
     
+    // Ne refresh les outlines que si le toggle est actif
     if (window.ICN_OUTLINE) {
-      await window.ICN_OUTLINE.apply();
+      const enabled = await window.ICN_STORAGE.get('icn_enabled');
+      if (enabled.icn_enabled) {
+        await window.ICN_OUTLINE.apply();
+      }
     }
   }
 
@@ -545,7 +571,7 @@ class PanelHandlers {
         betaList.innerHTML = '';
         for (const fc of betaFondclasses) {
           const item = document.createElement('div');
-          item.style.cssText = 'display: flex; align-items: center; justify-content; space-between; padding: 4px 6px; border-bottom: 1px solid #f3f4f6;';
+          item.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 4px 6px; border-bottom: 1px solid #f3f4f6;';
           item.innerHTML = `
             <span style="color: #3b82f6;">fondclasse${fc}</span>
             <button class="icn-remove-fondclasse" data-type="beta" data-fc="${fc}" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 14px;">×</button>
@@ -569,8 +595,12 @@ class PanelHandlers {
         
         await this.updateLearningLists();
         
+        // Ne refresh les outlines que si le toggle est actif
         if (window.ICN_OUTLINE) {
-          await window.ICN_OUTLINE.apply();
+          const enabled = await window.ICN_STORAGE.get('icn_enabled');
+          if (enabled.icn_enabled) {
+            await window.ICN_OUTLINE.apply();
+          }
         }
       });
     });
