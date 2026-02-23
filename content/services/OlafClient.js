@@ -182,8 +182,8 @@ class OlafClient {
     const days = [];
 
     for (const [dayNum, dayData] of byDay.entries()) {
-      const alpha = new Set();
-      const beta = new Set();
+      const alpha = new Map(); // Changé de Set à Map pour stocker {nom: statut}
+      const beta = new Map();
 
       for (const caseInfo of dayData.cases) {
         const olafName = caseInfo.agentName;
@@ -198,18 +198,33 @@ class OlafClient {
         
         if (this.hasTPA(caseInfo.text, caseInfo.classes)) continue;
 
+        // Extraire le statut
+        let status = null;
+        if (caseInfo.classes.includes('statut_18')) {
+          status = 'validated'; // Congé validé
+        } else if (caseInfo.classes.includes('statut_17')) {
+          status = 'pending'; // Congé en attente
+        }
+
         if (caseInfo.classes.includes('conges')) {
-          alpha.add(nameToUse);
+          alpha.set(nameToUse, status);
         } else if (this.hasStClass(caseInfo.classes)) {
-          beta.add(nameToUse);
+          beta.set(nameToUse, status);
         }
       }
 
       const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+      
+      // Convertir Map en objet {nom: statut}
+      const alphaObj = {};
+      const betaObj = {};
+      alpha.forEach((status, name) => { alphaObj[name] = status; });
+      beta.forEach((status, name) => { betaObj[name] = status; });
+      
       days.push({
         day_str: dateStr,
-        alpha: Array.from(alpha).sort(),
-        beta: Array.from(beta).sort()
+        alpha: alphaObj,
+        beta: betaObj
       });
     }
 

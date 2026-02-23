@@ -255,14 +255,15 @@ class PanelHandlers {
   generateDiff(cielData, olafReport, month) {
     const olafByDay = new Map();
     for (const d of olafReport.days || []) {
+      // d.alpha et d.beta sont maintenant des objets {nom: statut}
       // Convertir les noms complets OLAF en TRI (3 premières lettres du nom)
-      const alphaTRI = new Set(d.alpha.map(name => {
+      const alphaTRI = new Set(Object.keys(d.alpha).map(name => {
         const parts = name.split(' ');
         const lastName = parts[parts.length - 1]; // Dernier mot = nom de famille
         return lastName.substring(0, 3).toUpperCase();
       }));
       
-      const betaTRI = new Set(d.beta.map(name => {
+      const betaTRI = new Set(Object.keys(d.beta).map(name => {
         const parts = name.split(' ');
         const lastName = parts[parts.length - 1];
         return lastName.substring(0, 3).toUpperCase();

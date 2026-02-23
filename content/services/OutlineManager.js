@@ -42,9 +42,10 @@ class OutlineManager {
     
     if (olafDataRaw) {
       for (const [dayStr, data] of Object.entries(olafDataRaw)) {
+        // data.alpha et data.beta sont maintenant des objets {nom: statut}
         olafData.set(dayStr, {
-          alpha: new Set(data.alpha || []),
-          beta: new Set(data.beta || [])
+          alpha: data.alpha || {},
+          beta: data.beta || {}
         });
       }
     }
@@ -92,8 +93,8 @@ class OutlineManager {
             }
 
             if (cielFullName) {
-              const inOlafBeta = olafDay.beta.has(cielFullName);
-              const inOlafAlpha = olafDay.alpha.has(cielFullName);
+              const inOlafBeta = cielFullName in olafDay.beta;
+              const inOlafAlpha = cielFullName in olafDay.alpha;
               
               if (inOlafBeta) {
                 // Beta présent dans OLAF beta → vert clair
@@ -134,13 +135,24 @@ class OutlineManager {
             }
 
             if (cielFullName) {
-              const inOlafAlpha = olafDay.alpha.has(cielFullName);
-              const inOlafBeta = olafDay.beta.has(cielFullName);
+              const alphaStatus = olafDay.alpha[cielFullName]; // null, 'validated', ou 'pending'
+              const inOlafBeta = cielFullName in olafDay.beta;
               
-              if (inOlafAlpha) {
-                // Alpha présent dans OLAF alpha → vert
-                outlineColor = window.ICN_CONST.OUTLINE_ALPHA_VALID;
-                shadowEffect = window.ICN_CONST.SHADOW_ALPHA_VALID;
+              if (alphaStatus !== undefined) {
+                // Alpha présent dans OLAF alpha
+                if (alphaStatus === 'validated') {
+                  // Congé validé (statut_18) → vert foncé
+                  outlineColor = window.ICN_CONST.OUTLINE_ALPHA_VALIDATED;
+                  shadowEffect = window.ICN_CONST.SHADOW_ALPHA_VALIDATED;
+                } else if (alphaStatus === 'pending') {
+                  // Congé en attente (statut_17) → vert clair/lime
+                  outlineColor = window.ICN_CONST.OUTLINE_ALPHA_PENDING;
+                  shadowEffect = window.ICN_CONST.SHADOW_ALPHA_PENDING;
+                } else {
+                  // Congé sans statut → jaune par défaut
+                  outlineColor = window.ICN_CONST.OUTLINE_ALPHA_DEFAULT;
+                  shadowEffect = window.ICN_CONST.SHADOW_ALPHA_DEFAULT;
+                }
               } else if (inOlafBeta) {
                 // Alpha présent dans OLAF beta (inversé) → violet
                 outlineColor = window.ICN_CONST.OUTLINE_TYPE_MISMATCH;
@@ -175,8 +187,8 @@ class OutlineManager {
         
         if (!columnTs) continue;
         
-        // Pour chaque agent dans OLAF alpha
-        for (const agentName of olafDay.alpha) {
+        // Pour chaque agent dans OLAF alpha (parcourir les clés de l'objet)
+        for (const agentName of Object.keys(olafDay.alpha)) {
           // Trouver la ligne de cet agent
           const agentRow = agentRows.find(tr => {
             const agentId = tr.id.match(/ligneeff(\d+)/)?.[1];
@@ -209,8 +221,8 @@ class OutlineManager {
           }
         }
         
-        // Pour chaque agent dans OLAF beta
-        for (const agentName of olafDay.beta) {
+        // Pour chaque agent dans OLAF beta (parcourir les clés de l'objet)
+        for (const agentName of Object.keys(olafDay.beta)) {
           // Trouver la ligne de cet agent
           const agentRow = agentRows.find(tr => {
             const agentId = tr.id.match(/ligneeff(\d+)/)?.[1];
