@@ -2,6 +2,38 @@
  * Gestion des contours colorés
  */
 class OutlineManager {
+  /**
+   * Crée une pastille colorée dans le coin d'une cellule
+   */
+  createBadge(color) {
+    const badge = document.createElement('div');
+    badge.className = 'icn-status-badge';
+    badge.setAttribute('data-icn-ignore', '1'); // Marquer pour ignorer par l'observer
+    badge.style.cssText = `
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: ${color};
+      box-shadow: 0 0 4px ${color};
+      pointer-events: none;
+      z-index: 10;
+    `;
+    return badge;
+  }
+
+  /**
+   * Supprime les badges existants d'une cellule
+   */
+  removeBadge(cell) {
+    const existingBadge = cell.querySelector('.icn-status-badge');
+    if (existingBadge) {
+      existingBadge.remove();
+    }
+  }
+
   async clearAll() {
     const table = window.ICN_DOM.getCielTable();
     if (!table) return;
@@ -11,6 +43,7 @@ class OutlineManager {
       td.style.outlineOffset = "";
       td.style.boxShadow = "";
       td.removeAttribute("data-icn-outline");
+      this.removeBadge(td); // Supprimer les badges
     });
   }
 
@@ -97,19 +130,33 @@ class OutlineManager {
               const inOlafAlpha = cielFullName in olafDay.alpha;
               
               if (inOlafBeta) {
-                // Beta présent dans OLAF beta → vert clair
+                // Beta présent dans OLAF beta → vert clair + badge
                 outlineColor = window.ICN_CONST.OUTLINE_BETA_VALID;
                 shadowEffect = window.ICN_CONST.SHADOW_BETA_VALID;
+                cell.style.position = 'relative';
+                this.removeBadge(cell);
+                cell.appendChild(this.createBadge('#15803d'));
               } else if (inOlafAlpha) {
-                // Beta présent dans OLAF alpha (inversé) → violet
+                // Beta présent dans OLAF alpha (inversé) → violet + badge
                 outlineColor = window.ICN_CONST.OUTLINE_TYPE_MISMATCH;
                 shadowEffect = window.ICN_CONST.SHADOW_TYPE_MISMATCH;
+                cell.style.position = 'relative';
+                this.removeBadge(cell);
+                cell.appendChild(this.createBadge('#a855f7'));
               } else {
-                // Beta absent dans OLAF → rouge
+                // Beta absent dans OLAF → rouge + badge
                 outlineColor = window.ICN_CONST.OUTLINE_BETA_INVALID;
                 shadowEffect = window.ICN_CONST.SHADOW_BETA_INVALID;
+                cell.style.position = 'relative';
+                this.removeBadge(cell);
+                cell.appendChild(this.createBadge('#ef4444'));
               }
             }
+          } else {
+            // Pas de données OLAF → bleu par défaut + badge
+            cell.style.position = 'relative';
+            this.removeBadge(cell);
+            cell.appendChild(this.createBadge('#2563eb'));
           }
           
           cell.style.outline = outlineColor;
@@ -141,26 +188,41 @@ class OutlineManager {
               if (alphaStatus !== undefined) {
                 // Alpha présent dans OLAF alpha
                 if (alphaStatus === 'validated') {
-                  // Congé validé (statut_18) → vert foncé
+                  // Congé validé (statut_18) → vert foncé + badge
                   outlineColor = window.ICN_CONST.OUTLINE_ALPHA_VALIDATED;
                   shadowEffect = window.ICN_CONST.SHADOW_ALPHA_VALIDATED;
+                  cell.style.position = 'relative';
+                  this.removeBadge(cell);
+                  cell.appendChild(this.createBadge('#15803d'));
                 } else if (alphaStatus === 'pending') {
-                  // Congé en attente (statut_17) → vert clair/lime
+                  // Congé en attente (statut_17) → vert clair/lime + badge
                   outlineColor = window.ICN_CONST.OUTLINE_ALPHA_PENDING;
                   shadowEffect = window.ICN_CONST.SHADOW_ALPHA_PENDING;
+                  cell.style.position = 'relative';
+                  this.removeBadge(cell);
+                  cell.appendChild(this.createBadge('#faa92e'));
                 } else {
-                  // Congé sans statut → jaune par défaut
+                  // Congé sans statut → jaune + badge jaune
                   outlineColor = window.ICN_CONST.OUTLINE_ALPHA_DEFAULT;
                   shadowEffect = window.ICN_CONST.SHADOW_ALPHA_DEFAULT;
+                  cell.style.position = 'relative';
+                  this.removeBadge(cell);
+                  cell.appendChild(this.createBadge('#25b6eb'));
                 }
               } else if (inOlafBeta) {
-                // Alpha présent dans OLAF beta (inversé) → violet
+                // Alpha présent dans OLAF beta (inversé) → violet + badge
                 outlineColor = window.ICN_CONST.OUTLINE_TYPE_MISMATCH;
                 shadowEffect = window.ICN_CONST.SHADOW_TYPE_MISMATCH;
+                cell.style.position = 'relative';
+                this.removeBadge(cell);
+                cell.appendChild(this.createBadge('#a855f7'));
               } else {
-                // Alpha absent dans OLAF → rouge
+                // Alpha absent dans OLAF → rouge + badge
                 outlineColor = window.ICN_CONST.OUTLINE_ALPHA_INVALID;
                 shadowEffect = window.ICN_CONST.SHADOW_ALPHA_INVALID;
+                cell.style.position = 'relative';
+                this.removeBadge(cell);
+                cell.appendChild(this.createBadge('#ef4444'));
               }
             }
           }
@@ -211,13 +273,16 @@ class OutlineManager {
           
           const cls = await window.ICN_CLASSIFY.classifyCell(cell);
           
-          // Si la cellule n'est ni alpha ni beta → signaler en jaune (missing alpha)
+          // Si la cellule n'est ni alpha ni beta → signaler en jaune (missing alpha) + badge
           if (!cls || (cls !== 'alpha' && cls !== 'beta')) {
             cell.style.outline = window.ICN_CONST.OUTLINE_ALPHA_DEFAULT;
             cell.style.outlineOffset = "-2px";
             cell.style.boxShadow = window.ICN_CONST.SHADOW_ALPHA_DEFAULT;
             cell.setAttribute("data-icn-outline", "1");
             cell.setAttribute("data-icn-missing", "alpha");
+            cell.style.position = 'relative';
+            this.removeBadge(cell);
+            cell.appendChild(this.createBadge('#25b6eb'));
           }
         }
         
@@ -245,13 +310,16 @@ class OutlineManager {
           
           const cls = await window.ICN_CLASSIFY.classifyCell(cell);
           
-          // Si la cellule n'est ni alpha ni beta → signaler en bleu (missing beta)
+          // Si la cellule n'est ni alpha ni beta → signaler en bleu (missing beta) + badge
           if (!cls || (cls !== 'alpha' && cls !== 'beta')) {
             cell.style.outline = window.ICN_CONST.OUTLINE_BETA_DEFAULT;
             cell.style.outlineOffset = "-2px";
             cell.style.boxShadow = window.ICN_CONST.SHADOW_BETA_DEFAULT;
             cell.setAttribute("data-icn-outline", "1");
             cell.setAttribute("data-icn-missing", "beta");
+            cell.style.position = 'relative';
+            this.removeBadge(cell);
+            cell.appendChild(this.createBadge('#2563eb'));
           }
         }
       }
