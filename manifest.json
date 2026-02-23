@@ -2,11 +2,25 @@
   "manifest_version": 2,
   "name": "OLAF x CIEL",
   "version": "0.1.0",
-  "description": "cd Ajoute des contours colorés (vert=conforme, rouge=manquant, violet=inversé) pour faciliter la vérification des congés alpha et beta.",
+  "description": "Compare automatiquement les plannings CIEL et OLAF avec coloration visuelle des différences.",
 
   "author": "Dewey",
   
   "homepage_url": "https://github.com/22dewey22/olafxciel",
+
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "olaf-ciel-comparator@dewey.github.io",
+      "strict_min_version": "109.0",
+      "data_collection_permissions": {
+        "required": ["none"]
+      }
+    }
+  },
+
+  "data_collection_permissions": {
+    "required": []
+  },
 
   "icons": {
     "32": "icons/icon-32.png",
