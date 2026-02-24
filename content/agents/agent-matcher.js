@@ -11,7 +11,9 @@
     return name
       .toUpperCase()
       .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, ''); // Retire accents
+      .replace(/[\u0300-\u036f]/g, '') // Retire accents
+      .replace(/\s*-\s*/g, '-'); // Normalise les tirets (retire espaces autour)
+
   }
 
   /**
