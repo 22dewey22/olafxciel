@@ -6,7 +6,7 @@ class OlafClient {
     this.BASE_URL = "https://olafatco.dsna.aviation-civile.gouv.fr";
     
     // IDs d'agents à exclure du parsing (lignes de total, etc.)
-    this.EXCLUDED_IDS = ['306', '152'];
+    this.EXCLUDED_IDS = [];
   }
 
   async detectCible(login, pass) {

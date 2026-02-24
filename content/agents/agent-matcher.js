@@ -18,7 +18,6 @@
 
   /**
    * Extrait prénom et nom depuis CIEL
-   * Ex: "Guillaume RICHARD" → { firstName: "Guillaume", lastName: "RICHARD" }
    */
   function parseCielName(fullName) {
     const parts = fullName.trim().split(/\s+/);
@@ -37,7 +36,6 @@
 
   /**
    * Vérifie si un prénom CIEL match une forme OLAF
-   * Ex: "Guillaume" match "G." ou "GU." ou "GUI."
    * Si aucun pattern trouvé dans OLAF → accepter (optionnel)
    */
   function firstNameMatches(cielFirstName, olafText) {
@@ -80,7 +78,6 @@
   /**
    * Vérifie si un nom CIEL match un nom OLAF
    * Gère les noms composés (mariages)
-   * Ex: "ACKERMANN" match "ACKERMANN-TEYSSIER"
    */
   function lastNameMatches(cielLastName, olafText) {
     window.ICN_DEBUG.log(`[MATCHER] lastNameMatches("${cielLastName}", "${olafText}")`);
@@ -97,7 +94,6 @@
     }
     
     // CIEL inclus dans OLAF avec un tiret après
-    // Ex: "ACKERMANN" dans "ACKERMANN-TEYSSIER"
     const regex = new RegExp(`\\b${cielNorm}(?:-|\\s|$)`, 'i');
     const regexMatch = regex.test(olafNorm);
     
@@ -114,8 +110,8 @@
 
   /**
    * Vérifie si une personne CIEL match un texte OLAF
-   * @param {string} cielFullName - Ex: "Guillaume RICHARD"
-   * @param {string} olafText - Ex: "RICHARD G."
+   * @param {string} cielFullName - Ex: "Kevin RICHARD"
+   * @param {string} olafText - Ex: "RICHARD K."
    * @returns {boolean}
    */
   function agentMatches(cielFullName, olafText) {
@@ -153,8 +149,8 @@
 
   /**
    * Trouve la correspondance CIEL pour un texte OLAF
-   * @param {string} olafText - Ex: "RICHARD G."
-   * @param {Array<string>} cielAgentsList - Ex: ["Guillaume RICHARD", "Grégory RICHARD"]
+   * @param {string} olafText 
+   * @param {Array<string>} cielAgentsList 
    * @returns {string|null} Le nom CIEL correspondant ou null
    */
   function findCielMatch(olafText, cielAgentsList) {
