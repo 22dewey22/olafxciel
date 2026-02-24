@@ -210,3 +210,4 @@ ciel.html
 *.csv
 test/
 data/
+*.xpi
