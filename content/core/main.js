@@ -15,7 +15,18 @@
 
     let lastMonthLabel = window.ICN_DOM.getMonthLabel();
 
-    tableObserver = new MutationObserver(async () => {
+    tableObserver = new MutationObserver(async (mutations) => {
+      // Ignorer les mutations causées par nos propres badges
+      const isOnlyBadgeChange = mutations.every(mutation => {
+        return Array.from(mutation.addedNodes).every(node => 
+          node.nodeType === 1 && node.hasAttribute && node.hasAttribute('data-icn-ignore')
+        ) && Array.from(mutation.removedNodes).every(node =>
+          node.nodeType === 1 && node.hasAttribute && node.hasAttribute('data-icn-ignore')
+        );
+      });
+      
+      if (isOnlyBadgeChange) return; // Ignorer si ce sont juste des badges
+      
       const currentMonthLabel = window.ICN_DOM.getMonthLabel();
       
       // Détecter changement de mois

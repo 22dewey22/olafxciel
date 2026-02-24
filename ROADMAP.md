@@ -6,7 +6,6 @@
 
 ## 🐛 Corrections
 
-- **Bug sur certains noms de famille composés** — Correction d'un comportement anormal identifié sur ce planning
 
 ---
 
@@ -28,3 +27,4 @@
 
 ## ✅ Terminé
 
+- **Bug sur certains noms de famille composés** — Correction d'un comportement anormal identifié sur ce planning

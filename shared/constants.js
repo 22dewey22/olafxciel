@@ -164,7 +164,7 @@ window.ICN_DEBUG = {
   
   // Exposer le StorageManager globalement
   window.ICN_STORAGE = StorageManager;
-  console.log('[ICN-STORAGE] ✓ Storage manager initialized with fallback support');
+  window.ICN_DEBUG.log('[ICN-STORAGE] ✓ Storage manager initialized with fallback support');
 })();
 
 window.ICN_CONST = {
@@ -215,17 +215,19 @@ window.ICN_CONST = {
   },
 
   // Styles contours avec effet néon
-  OUTLINE_ALPHA_DEFAULT: "2px solid #eab308",  // 🟡 Jaune par défaut
-  OUTLINE_ALPHA_VALID: "2px solid #22c55e",    // 🟢 Vert si validé par OLAF
-  OUTLINE_ALPHA_INVALID: "2px solid #ef4444",  // 🔴 Rouge si manquant dans OLAF
-  OUTLINE_BETA_DEFAULT: "2px solid #2563eb",   // 🔵 Bleu par défaut
-  OUTLINE_BETA_VALID: "2px solid #10b981",     // 🟢 Vert légèrement différent pour beta valide
-  OUTLINE_BETA_INVALID: "2px solid #ef4444",   // 🔴 Rouge si manquant dans OLAF
-  OUTLINE_TYPE_MISMATCH: "2px solid #a855f7",  // 🟣 Violet si alpha/beta inversé
+  OUTLINE_ALPHA_DEFAULT: "2px solid #25b6eb",       // 🟡 Jaune par défaut
+  OUTLINE_ALPHA_VALIDATED: "2px solid #15803d",     // 🟢 Vert foncé (validé statut_18)
+  OUTLINE_ALPHA_PENDING: "2px solid #faa92e",       // 🟢 Vert clair/Lime (en attente statut_17)
+  OUTLINE_ALPHA_INVALID: "2px solid #ef4444",       // 🔴 Rouge si manquant dans OLAF
+  OUTLINE_BETA_DEFAULT: "2px solid #25b6eb",        // 🔵 Bleu par défaut
+  OUTLINE_BETA_VALID: "2px solid #15803d",          // 🟢 Vert légèrement différent pour beta valide
+  OUTLINE_BETA_INVALID: "2px solid #ef4444",        // 🔴 Rouge si manquant dans OLAF
+  OUTLINE_TYPE_MISMATCH: "2px solid #a855f7",       // 🟣 Violet si alpha/beta inversé
   
   // Box-shadow pour effet néon
   SHADOW_ALPHA_DEFAULT: "0 0 8px rgba(234, 179, 8, 0.6), 0 0 12px rgba(234, 179, 8, 0.3)",
-  SHADOW_ALPHA_VALID: "0 0 8px rgba(34, 197, 94, 0.6), 0 0 12px rgba(34, 197, 94, 0.3)",
+  SHADOW_ALPHA_VALIDATED: "0 0 8px rgba(21, 128, 61, 0.6), 0 0 12px rgba(21, 128, 61, 0.3)",
+  SHADOW_ALPHA_PENDING: "0 0 8px rgba(132, 204, 22, 0.6), 0 0 12px rgba(132, 204, 22, 0.3)",
   SHADOW_ALPHA_INVALID: "0 0 8px rgba(239, 68, 68, 0.6), 0 0 12px rgba(239, 68, 68, 0.3)",
   SHADOW_BETA_DEFAULT: "0 0 8px rgba(37, 99, 235, 0.6), 0 0 12px rgba(37, 99, 235, 0.3)",
   SHADOW_BETA_VALID: "0 0 8px rgba(16, 185, 129, 0.6), 0 0 12px rgba(16, 185, 129, 0.3)",
