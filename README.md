@@ -13,28 +13,26 @@ Extension Firefox pour comparer automatiquement les plannings CIEL et OLAF avec 
 
 **Pour les congés ALPHA :**
 - 🟢 **Vert** : Congé présent dans OLAF (conforme)
-- 🟡 **Jaune** : Pas encore chargé depuis OLAF
+- 🟡 **Jaune** : Présent dans OLAF mais absent de CIEL
 - 🔴 **Rouge** : Présent dans CIEL mais absent d'OLAF
 - 🟣 **Violet** : Type inversé (marqué beta dans OLAF)
-- 🔵 **Bleu** : Présent dans OLAF mais absent de CIEL
 
 **Pour les congés BETA :**
 - 🟢 **Vert clair** : Congé présent dans OLAF (conforme)
-- 🔵 **Bleu** : Pas encore chargé depuis OLAF
+- 🔵 **Bleu** : Présent dans OLAF mais absent de CIEL
 - 🔴 **Rouge** : Présent dans CIEL mais absent d'OLAF
 - 🟣 **Violet** : Type inversé (marqué alpha dans OLAF)
-- 🟡 **Jaune** : Présent dans OLAF mais absent de CIEL
 
 ### 📊 Compteurs automatiques
 - Ligne de total ALPHA en bas du tableau
 - Ligne de total BETA en bas du tableau
 - Calcul automatique par jour travaillé
 
-### ⚙️ Configuration personnalisable
-- **Cycle de travail** : Définissez votre premier jour (J1), la longueur du cycle (6 ou 12 jours), et quels jours sont travaillés
+### ⚙️ Configuration personnalisable, onglet Settings bleu sur la gauche
+- **Cycle de travail** : Définissez votre premier jour du cycle (J1), la longueur du cycle (6 ou 12 jours), et quels jours sont travaillés
 - **Auto-chargement** : Chargement automatique d'OLAF au changement de mois
 - **Mémorisation** : Sauvegarde optionnelle des identifiants OLAF
-- **Mode apprentissage** : Ajoutez manuellement des classes alpha/beta en cliquant sur les cellules
+- **Réglage Alpha/Beta** : Ajoutez manuellement des classes alpha/beta en cliquant sur les cellules
 
 ## 📥 Installation
 
@@ -58,7 +56,7 @@ Puis charger le dossier dans `about:debugging` → "Charger un module temporaire
 
 ### 2. Configurer votre cycle de travail
 
-Dans l'onglet **⚙️ Apprentissage** :
+Dans l'onglet **⚙️ Settings** :
 1. Sélectionnez la date de votre J1 (premier jour du cycle)
 2. Choisissez la longueur de votre cycle (6 ou 12 jours)
 3. Cochez les jours travaillés dans le cycle (ex: J1, J2, J3, J6, J7, J8)
@@ -75,7 +73,7 @@ Dans l'onglet **⚙️ Apprentissage** :
 
 Si certaines classes de congés ne sont pas détectées automatiquement :
 
-1. Ouvrez l'onglet **⚙️ Apprentissage**
+1. Ouvrez l'onglet **⚙️ Settings**
 2. Sélectionnez **Mode Alpha** ou **Mode Beta**
 3. Cliquez sur les cellules du planning à ajouter
 4. Les classes sont sauvegardées automatiquement
