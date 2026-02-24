@@ -64,6 +64,7 @@
         
         "content/services/OlafClient.js",
         "content/services/CielParser.js",
+        "content/services/RemplacementParser.js",
         "content/services/OutlineManager.js",
         "content/services/TotalsManager.js",
         
