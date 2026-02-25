@@ -31,7 +31,7 @@
       
       // Détecter changement de mois
       if (currentMonthLabel !== lastMonthLabel) {
-        window.ICN_DEBUG.log("[ICN] Month changed:", lastMonthLabel, "→", currentMonthLabel);
+        console.log("[ICN] Month changed:", lastMonthLabel, "→", currentMonthLabel);
         lastMonthLabel = currentMonthLabel;
         
         // Recharger les settings du panel
@@ -41,7 +41,7 @@
         
         // Auto-chargement OLAF si activé
         const settings = await window.ICN_STORAGE.get(['icn_olaf_autoload', 'olaf_login', 'olaf_pass', 'icn_olaf_cible']);
-        window.ICN_DEBUG.log("[ICN] Settings auto-load:", {
+        console.log("[ICN] Settings auto-load:", {
           autoload: settings.icn_olaf_autoload,
           hasLogin: !!settings.olaf_login,
           hasPass: !!settings.olaf_pass,
@@ -49,7 +49,7 @@
         });
         
         if (settings.icn_olaf_autoload && settings.olaf_login && settings.olaf_pass) {
-          window.ICN_DEBUG.log("[ICN] Auto-chargement OLAF...");
+          console.log("[ICN] Auto-chargement OLAF...");
           
           const parser = new CielParser();
           const parsed = parser.parseMonthLabel(currentMonthLabel);
@@ -77,12 +77,15 @@
                 }
                 await window.ICN_STORAGE.set({ icn_olaf_data: olafDataToStore });
                 
-                window.ICN_DEBUG.log("[ICN] ✅ Auto-chargement OLAF réussi");
+                console.log("[ICN] ✅ Auto-chargement OLAF réussi");
               } else {
-                window.ICN_DEBUG.error("[ICN] ❌ Auto-chargement OLAF échoué:", olafReport.error);
+                console.error("[ICN] ❌ Auto-chargement OLAF échoué:", olafReport.error);
+                // Ne pas bloquer l'affichage des outlines si OLAF échoue
               }
             } catch (err) {
-              window.ICN_DEBUG.error("[ICN] ❌ Erreur auto-chargement OLAF:", err);
+              console.error("[ICN] ❌ Erreur auto-chargement OLAF:", err.message || err);
+              console.error("[ICN] Type d'erreur:", err.name);
+              // Continuer même si OLAF échoue
             }
           }
         }
@@ -92,6 +95,11 @@
       const enabled = await getEnabled();
       if (enabled && window.ICN_OUTLINE) {
         await window.ICN_OUTLINE.apply();
+      }
+      
+      // Afficher les remplacements si activé
+      if (enabled && window.ICN_REMPLA_DISPLAY) {
+        await window.ICN_REMPLA_DISPLAY.apply();
       }
     });
 
@@ -138,6 +146,9 @@
       if (enabled && window.ICN_OUTLINE) {
         await window.ICN_OUTLINE.apply();
       }
+      if (enabled && window.ICN_REMPLA_DISPLAY) {
+        await window.ICN_REMPLA_DISPLAY.apply();
+      }
       return;
     }
   });
@@ -145,30 +156,36 @@
   // Init
   async function init() {
     try {
-      window.ICN_DEBUG.log("[ICN] Initializing...");
+      console.log("[ICN] Initializing...");
       
-      window.ICN_DEBUG.log("[ICN] Step 1: Creating panel UI...");
+      console.log("[ICN] Step 1: Creating panel UI...");
       await window.ICN_PANEL_UI.create();
-      window.ICN_DEBUG.log("[ICN] Step 1: ✓ Panel created");
+      console.log("[ICN] Step 1: ✓ Panel created");
       
-      window.ICN_DEBUG.log("[ICN] Step 2: Attaching handlers...");
+      console.log("[ICN] Step 2: Attaching handlers...");
       const handlers = new window.ICN_PANEL_HANDLERS(window.ICN_PANEL_UI);
       await handlers.attach();
-      window.ICN_DEBUG.log("[ICN] Step 2: ✓ Handlers attached");
+      console.log("[ICN] Step 2: ✓ Handlers attached");
       
-      window.ICN_DEBUG.log("[ICN] Step 3: Checking if contours enabled...");
+      console.log("[ICN] Step 3: Checking if contours enabled...");
       const enabled = await getEnabled();
-      window.ICN_DEBUG.log("[ICN] Step 3: Contours enabled =", enabled);
+      console.log("[ICN] Step 3: Contours enabled =", enabled);
       
       if (enabled && window.ICN_OUTLINE) {
-        window.ICN_DEBUG.log("[ICN] Step 4: Applying outlines...");
+        console.log("[ICN] Step 4: Applying outlines...");
         await window.ICN_OUTLINE.apply();
-        window.ICN_DEBUG.log("[ICN] Step 4: ✓ Outlines applied");
+        console.log("[ICN] Step 4: ✓ Outlines applied");
       }
       
-      window.ICN_DEBUG.log("[ICN] Step 5: Checking auto-load...");
+      if (enabled && window.ICN_REMPLA_DISPLAY) {
+        console.log("[ICN] Step 4b: Applying remplacements...");
+        await window.ICN_REMPLA_DISPLAY.apply();
+        console.log("[ICN] Step 4b: ✓ Remplacements applied");
+      }
+      
+      console.log("[ICN] Step 5: Checking auto-load...");
       const settings = await window.ICN_STORAGE.get(['icn_olaf_autoload', 'olaf_login', 'olaf_pass', 'icn_olaf_cible']);
-      window.ICN_DEBUG.log("[ICN] Step 5: Auto-load settings:", {
+      console.log("[ICN] Step 5: Auto-load settings:", {
         autoload: settings.icn_olaf_autoload,
         hasLogin: !!settings.olaf_login,
         hasPass: !!settings.olaf_pass,
@@ -176,7 +193,7 @@
       });
     
     if (settings.icn_olaf_autoload && settings.olaf_login && settings.olaf_pass) {
-      window.ICN_DEBUG.log("[ICN] Auto-chargement OLAF à l'init...");
+      console.log("[ICN] Auto-chargement OLAF à l'init...");
       
       const monthLabel = window.ICN_DOM.getMonthLabel();
       const parser = new CielParser();
@@ -210,24 +227,29 @@
               await window.ICN_OUTLINE.apply();
             }
             
-            window.ICN_DEBUG.log("[ICN] ✅ Auto-chargement OLAF réussi");
+            // Rafraîchir les remplacements
+            if (enabled && window.ICN_REMPLA_DISPLAY) {
+              await window.ICN_REMPLA_DISPLAY.apply();
+            }
+            
+            console.log("[ICN] ✅ Auto-chargement OLAF réussi");
           } else {
-            window.ICN_DEBUG.error("[ICN] ❌ Auto-chargement OLAF échoué:", olafReport.error);
+            console.error("[ICN] ❌ Auto-chargement OLAF échoué:", olafReport.error);
           }
         } catch (err) {
-          window.ICN_DEBUG.error("[ICN] ❌ Erreur auto-chargement OLAF:", err);
+          console.error("[ICN] ❌ Erreur auto-chargement OLAF:", err);
         }
       }
     }
     
-    window.ICN_DEBUG.log("[ICN] Step 6: Installing observers...");
+    console.log("[ICN] Step 6: Installing observers...");
     installObservers();
-    window.ICN_DEBUG.log("[ICN] ✅ Initialization complete!");
+    console.log("[ICN] ✅ Initialization complete!");
     
     } catch (error) {
-      window.ICN_DEBUG.error("[ICN] ❌ Initialization failed:", error);
-      window.ICN_DEBUG.error("[ICN] Error message:", error.message);
-      window.ICN_DEBUG.error("[ICN] Error stack:", error.stack);
+      console.error("[ICN] ❌ Initialization failed:", error);
+      console.error("[ICN] Error message:", error.message);
+      console.error("[ICN] Error stack:", error.stack);
       throw error;
     }
   }
@@ -238,7 +260,7 @@
     const url = location.href;
     if (url !== lastUrl) {
       lastUrl = url;
-      window.ICN_DEBUG.log("[ICN] Page changed, reloading...");
+      console.log("[ICN] Page changed, reloading...");
       
       setTimeout(async () => {
         // Recharger les settings du panel
@@ -253,7 +275,7 @@
 
         // Auto-chargement OLAF si activé
         const settings = await window.ICN_STORAGE.get(['icn_olaf_autoload', 'olaf_login', 'olaf_pass', 'icn_olaf_cible']);
-        window.ICN_DEBUG.log("[ICN] Settings auto-load:", {
+        console.log("[ICN] Settings auto-load:", {
           autoload: settings.icn_olaf_autoload,
           hasLogin: !!settings.olaf_login,
           hasPass: !!settings.olaf_pass,
@@ -261,7 +283,7 @@
         });
         
         if (settings.icn_olaf_autoload && settings.olaf_login && settings.olaf_pass) {
-          window.ICN_DEBUG.log("[ICN] Auto-chargement OLAF...");
+          console.log("[ICN] Auto-chargement OLAF...");
           
           const monthLabel = window.ICN_DOM.getMonthLabel();
           const parser = new CielParser();
@@ -295,12 +317,12 @@
                   await window.ICN_OUTLINE.apply();
                 }
                 
-                window.ICN_DEBUG.log("[ICN] ✅ Auto-chargement OLAF réussi");
+                console.log("[ICN] ✅ Auto-chargement OLAF réussi");
               } else {
-                window.ICN_DEBUG.error("[ICN] ❌ Auto-chargement OLAF échoué:", olafReport.error);
+                console.error("[ICN] ❌ Auto-chargement OLAF échoué:", olafReport.error);
               }
             } catch (err) {
-              window.ICN_DEBUG.error("[ICN] ❌ Erreur auto-chargement OLAF:", err);
+              console.error("[ICN] ❌ Erreur auto-chargement OLAF:", err);
             }
           }
         }

@@ -225,8 +225,12 @@ class OutlineManager {
                 cell.appendChild(this.createBadge('#ef4444'));
               }
             }
+          } else {
+            // Pas de données OLAF → bleu par défaut + badge
+            cell.style.position = 'relative';
+            this.removeBadge(cell);
+            cell.appendChild(this.createBadge('#2563eb'));
           }
-
           cell.style.outline = outlineColor;
           cell.style.outlineOffset = "-2px";
           cell.style.boxShadow = shadowEffect;
