@@ -288,18 +288,24 @@ class RemplacementDisplay {
     // Construire les dates YYYYMMDD pour le tooltip
     const daysForTooltip = run.map(day => year * 10000 + month * 100 + day);
 
+    // S'assurer que le tableau a position relative
+    table.style.position = 'relative';
+
     // Récupérer les positions
     const tableRect = table.getBoundingClientRect();
     const cellRect = cell.getBoundingClientRect();
     
-    // Positionner l'astérisque au-dessus (relatif au tableau)
+    // Calculer position relative au tableau
+    const leftRelative = cellRect.left - tableRect.left + cellRect.width / 2 - 10;
+    
+    // Positionner l'astérisque au-dessus (absolute par rapport au tableau)
     const asterisk = this.createAsterisk(daysForTooltip, remplasByDate);
     
-    asterisk.style.position = 'fixed';
-    asterisk.style.left = `${cellRect.left + cellRect.width / 2 - 10}px`;
-    asterisk.style.top = `${tableRect.top - 25}px`;
+    asterisk.style.position = 'absolute';
+    asterisk.style.left = `${leftRelative}px`;
+    asterisk.style.top = '-25px';
     
-    document.body.appendChild(asterisk);
+    table.appendChild(asterisk);
     this.asterisks.push(asterisk);
     
     console.log(`[REMPLA-DISPLAY] ✅ Astérisque ajouté au-dessus ts=${ts}`);
@@ -341,18 +347,24 @@ class RemplacementDisplay {
     // Construire les dates YYYYMMDD pour le tooltip
     const daysForTooltip = run.map(day => year * 10000 + month * 100 + day);
 
+    // S'assurer que le tableau a position relative
+    table.style.position = 'relative';
+
     // Récupérer les positions
     const tableRect = table.getBoundingClientRect();
     const cellRect = cell.getBoundingClientRect();
     
-    // Positionner l'astérisque sur le bord droit (hauteur relative au tableau)
+    // Calculer position relative au tableau
+    const leftRelative = cellRect.right - tableRect.left - 5;
+    
+    // Positionner l'astérisque sur le bord droit (absolute par rapport au tableau)
     const asterisk = this.createAsterisk(daysForTooltip, remplasByDate);
     
-    asterisk.style.position = 'fixed';
-    asterisk.style.left = `${cellRect.right - 5}px`;
-    asterisk.style.top = `${tableRect.top - 25}px`;
+    asterisk.style.position = 'absolute';
+    asterisk.style.left = `${leftRelative}px`;
+    asterisk.style.top = '-25px';
     
-    document.body.appendChild(asterisk);
+    table.appendChild(asterisk);
     this.asterisks.push(asterisk);
     
     console.log(`[REMPLA-DISPLAY] ✅ Astérisque ajouté après jour ${previousDay} pour rempla du ${dayNum}`);
