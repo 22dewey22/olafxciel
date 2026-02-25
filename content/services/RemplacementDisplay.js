@@ -354,8 +354,8 @@ class RemplacementDisplay {
     const tableRect = table.getBoundingClientRect();
     const cellRect = cell.getBoundingClientRect();
     
-    // Calculer position relative au tableau
-    const leftRelative = cellRect.right - tableRect.left - 5;
+    // Calculer position relative au tableau, décalée vers la gauche de la moitié de l'astérisque (10px pour font-size 20px)
+    const leftRelative = cellRect.right - tableRect.left - 10;
     
     // Positionner l'astérisque sur le bord droit (absolute par rapport au tableau)
     const asterisk = this.createAsterisk(daysForTooltip, remplasByDate);
