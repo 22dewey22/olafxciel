@@ -288,13 +288,16 @@ class RemplacementDisplay {
     // Construire les dates YYYYMMDD pour le tooltip
     const daysForTooltip = run.map(day => year * 10000 + month * 100 + day);
 
-    // Positionner l'astérisque au-dessus
-    const rect = cell.getBoundingClientRect();
+    // Récupérer les positions
+    const tableRect = table.getBoundingClientRect();
+    const cellRect = cell.getBoundingClientRect();
+    
+    // Positionner l'astérisque au-dessus (relatif au tableau)
     const asterisk = this.createAsterisk(daysForTooltip, remplasByDate);
     
     asterisk.style.position = 'fixed';
-    asterisk.style.left = `${rect.left + rect.width / 2 - 10}px`;
-    asterisk.style.top = `${rect.top - 25}px`;
+    asterisk.style.left = `${cellRect.left + cellRect.width / 2 - 10}px`;
+    asterisk.style.top = `${tableRect.top - 25}px`;
     
     document.body.appendChild(asterisk);
     this.asterisks.push(asterisk);
@@ -338,13 +341,16 @@ class RemplacementDisplay {
     // Construire les dates YYYYMMDD pour le tooltip
     const daysForTooltip = run.map(day => year * 10000 + month * 100 + day);
 
-    // Positionner l'astérisque sur le bord droit de la cellule
-    const rect = cell.getBoundingClientRect();
+    // Récupérer les positions
+    const tableRect = table.getBoundingClientRect();
+    const cellRect = cell.getBoundingClientRect();
+    
+    // Positionner l'astérisque sur le bord droit (hauteur relative au tableau)
     const asterisk = this.createAsterisk(daysForTooltip, remplasByDate);
     
     asterisk.style.position = 'fixed';
-    asterisk.style.left = `${rect.right - 5}px`;
-    asterisk.style.top = `${rect.top - 25}px`;
+    asterisk.style.left = `${cellRect.right - 5}px`;
+    asterisk.style.top = `${tableRect.top - 25}px`;
     
     document.body.appendChild(asterisk);
     this.asterisks.push(asterisk);
