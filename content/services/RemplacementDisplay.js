@@ -20,16 +20,13 @@ class RemplacementDisplay {
   createAsterisk() {
     const asterisk = document.createElement('div');
     asterisk.className = 'icn-rempla-asterisk';
-    asterisk.setAttribute('data-icn-ignore', '1'); // Ignorer par l'observer
+    asterisk.setAttribute('data-icn-ignore', '1');
     asterisk.style.cssText = `
       position: absolute;
-      top: -15px;
-      left: 50%;
-      transform: translateX(-50%);
       color: #ef4444;
-      font-size: 16px;
+      font-size: 20px;
       font-weight: bold;
-      z-index: 100;
+      z-index: 1000;
       pointer-events: none;
       text-shadow: 0 0 4px rgba(239, 68, 68, 0.8);
     `;
@@ -43,11 +40,11 @@ class RemplacementDisplay {
   async apply() {
     this.clearAll();
 
-    // Récupérer les demandes de remplacement
+    // Récupérer les demandes
     const remplaResult = await window.ICN_REMPLA.getRemplacements();
     
     if (!remplaResult.ok) {
-      console.error('[REMPLA-DISPLAY] Erreur chargement remplacements:', remplaResult.error);
+      console.error('[REMPLA-DISPLAY] Erreur chargement:', remplaResult.error);
       return;
     }
 
@@ -58,7 +55,7 @@ class RemplacementDisplay {
       return;
     }
 
-    // Récupérer le mois affiché dans CIEL
+    // Récupérer le mois affiché
     const monthLabel = window.ICN_DOM.getMonthLabel();
     const parser = new CielParser();
     const parsed = parser.parseMonthLabel(monthLabel);
@@ -70,7 +67,7 @@ class RemplacementDisplay {
 
     const { year, month } = parsed;
     
-    // Filtrer les remplas du mois en cours
+    // Filtrer les remplas du mois
     const remplasDuMois = new Map();
     for (const [dateStr, demandes] of remplasByDate.entries()) {
       const [y, m] = dateStr.split('-').map(Number);
@@ -83,7 +80,7 @@ class RemplacementDisplay {
 
     if (remplasDuMois.size === 0) return;
 
-    // Récupérer l'ordre des colonnes du tableau CIEL
+    // Récupérer l'ordre des colonnes
     const order = window.ICN_DOM.getTsOrderAndLabels();
     
     if (!order || order.length === 0) {
@@ -91,148 +88,167 @@ class RemplacementDisplay {
       return;
     }
 
-    // Extraire les dates des colonnes visibles
-    const visibleDates = new Set();
+    const table = window.ICN_DOM.getCielTable();
+    if (!table) return;
+
+    // Créer une map ts -> dateStr
     const tsToDate = new Map();
+    const datesToTs = new Map();
+    const visibleDays = new Set();
     
     for (const { ts, label } of order) {
       const dayMatch = /\.(\d+)/.exec(label);
       if (dayMatch) {
         const dayNum = parseInt(dayMatch[1], 10);
         const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
-        visibleDates.add(dateStr);
         tsToDate.set(ts, dateStr);
+        datesToTs.set(dateStr, ts);
+        visibleDays.add(dayNum);
       }
     }
 
-    // Pour chaque date avec remplas
-    for (const [dateStr] of remplasDuMois.entries()) {
-      if (visibleDates.has(dateStr)) {
-        // CAS 1 : Date visible dans le tableau
-        this.addAsteriskOnColumn(dateStr, order, tsToDate);
+    // Grouper les dates de remplas en "runs" (séquences consécutives non visibles)
+    const remplaRuns = [];
+    const sortedRemplaDays = Array.from(remplasDuMois.keys())
+      .map(dateStr => parseInt(dateStr.split('-')[2], 10))
+      .sort((a, b) => a - b);
+    
+    let currentRun = [];
+    for (const day of sortedRemplaDays) {
+      if (visibleDays.has(day)) {
+        // Jour visible → crée son propre run
+        if (currentRun.length > 0) {
+          remplaRuns.push(currentRun);
+          currentRun = [];
+        }
+        remplaRuns.push([day]);
+      } else {
+        // Jour non visible
+        if (currentRun.length === 0) {
+          currentRun = [day];
+        } else {
+          const lastDay = currentRun[currentRun.length - 1];
+          // Vérifier s'il y a des jours visibles entre lastDay et day
+          let hasVisibleBetween = false;
+          for (let d = lastDay + 1; d < day; d++) {
+            if (visibleDays.has(d)) {
+              hasVisibleBetween = true;
+              break;
+            }
+          }
+          
+          if (hasVisibleBetween) {
+            // Nouveau run
+            remplaRuns.push(currentRun);
+            currentRun = [day];
+          } else {
+            // Même run
+            currentRun.push(day);
+          }
+        }
       }
     }
-
-    // Gérer les "trous" (dates non visibles)
-    this.addAsterisksForGaps(remplasDuMois, order, tsToDate, year, month);
-  }
-
-  /**
-   * Ajoute un astérisque au-dessus d'une colonne
-   */
-  addAsteriskOnColumn(dateStr, order, tsToDate) {
-    console.log(`[REMPLA-DISPLAY] Tentative d'ajout astérisque pour ${dateStr}`);
-    
-    // Trouver l'index de la colonne correspondante
-    let columnIndex = -1;
-    for (let i = 0; i < order.length; i++) {
-      if (tsToDate.get(order[i].ts) === dateStr) {
-        columnIndex = i;
-        console.log(`[REMPLA-DISPLAY] Colonne trouvée pour ${dateStr}, index=${columnIndex}, ts=${order[i].ts}`);
-        break;
-      }
-    }
-    
-    if (columnIndex === -1) {
-      console.error(`[REMPLA-DISPLAY] Colonne introuvable pour ${dateStr}`);
-      return;
-    }
-    
-    const table = window.ICN_DOM.getCielTable();
-    if (!table) {
-      console.error('[REMPLA-DISPLAY] Table introuvable');
-      return;
+    if (currentRun.length > 0) {
+      remplaRuns.push(currentRun);
     }
 
-    console.log('[REMPLA-DISPLAY] Table trouvée:', table);
-    console.log('[REMPLA-DISPLAY] Table.tagName:', table.tagName);
-    console.log('[REMPLA-DISPLAY] Table a un thead?', !!table.querySelector('thead'));
-    console.log('[REMPLA-DISPLAY] Structure thead:', table.querySelector('thead')?.outerHTML?.substring(0, 200));
+    console.log('[REMPLA-DISPLAY] Runs de remplas:', remplaRuns);
 
-    // Sélectionner tous les td du header (CIEL utilise des td, pas des th)
-    const headerCells = table.querySelectorAll('thead tr.h1 td');
-    console.log(`[REMPLA-DISPLAY] Total header cells (td): ${headerCells.length}`);
-    
-    // Les premières colonnes sont fixes (nom, etc.), les colonnes de dates commencent après
-    // On doit trouver le bon offset
-    const headerCell = headerCells[columnIndex];
-    
-    console.log(`[REMPLA-DISPLAY] Header cell à l'index ${columnIndex}:`, headerCell);
-    
-    if (headerCell) {
-      headerCell.style.position = 'relative';
-      const asterisk = this.createAsterisk();
-      headerCell.appendChild(asterisk);
-      this.asterisks.push(asterisk);
-      console.log(`[REMPLA-DISPLAY] ✅ Astérisque ajouté sur ${dateStr}`);
-    } else {
-      console.error(`[REMPLA-DISPLAY] Header cell introuvable à l'index ${columnIndex}`);
-    }
-  }
-
-  /**
-   * Ajoute des astérisques pour les dates non visibles (entre deux colonnes)
-   */
-  addAsterisksForGaps(remplasDuMois, order, tsToDate, year, month) {
-    // Trier les dates visibles
-    const sortedVisibleDates = Array.from(tsToDate.values()).sort();
-    
-    // Pour chaque paire de dates consécutives
-    for (let i = 0; i < sortedVisibleDates.length - 1; i++) {
-      const dateA = sortedVisibleDates[i];
-      const dateB = sortedVisibleDates[i + 1];
+    // Pour chaque run, afficher une seule étoile
+    for (const run of remplaRuns) {
+      const firstDay = run[0];
+      const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(firstDay).padStart(2, '0')}`;
       
-      // Vérifier s'il y a des remplas entre dateA et dateB
-      const hasRemplaInGap = Array.from(remplasDuMois.keys()).some(remplaDate => {
-        return remplaDate > dateA && remplaDate < dateB;
-      });
-
-      if (hasRemplaInGap) {
-        // Trouver les timestamps des deux colonnes
-        let tsA = null;
-        let tsB = null;
-        
-        for (const { ts } of order) {
-          if (tsToDate.get(ts) === dateA) tsA = ts;
-          if (tsToDate.get(ts) === dateB) tsB = ts;
-        }
-
-        if (tsA && tsB) {
-          this.addAsteriskBetweenColumns(tsA, tsB);
-        }
+      // Chercher si cette date a une colonne
+      const ts = datesToTs.get(dateStr);
+      
+      if (ts) {
+        // CAS 1 : Première date du run a une colonne → astérisque au-dessus
+        this.addAsteriskAboveColumn(table, ts);
+      } else {
+        // CAS 2 : Chercher la colonne précédente au run
+        this.addAsteriskAfterPreviousColumn(table, firstDay, datesToTs, order, year, month);
       }
     }
   }
 
   /**
-   * Ajoute un astérisque entre deux colonnes
+   * Ajoute un astérisque au-dessus d'une colonne existante
    */
-  addAsteriskBetweenColumns(tsA, tsB) {
-    const table = window.ICN_DOM.getCielTable();
-    if (!table) return;
+  addAsteriskAboveColumn(table, ts) {
+    // Trouver la cellule header avec ce timestamp
+    const headerRow = table.querySelector('thead tr.h1');
+    if (!headerRow) return;
 
-    const headerA = table.querySelector(`thead th[data-ts="${tsA}"]`);
-    const headerB = table.querySelector(`thead th[data-ts="${tsB}"]`);
+    // Chercher le <a> avec href contenant ce ts
+    const link = headerRow.querySelector(`a[href*="ts=${ts}"]`);
+    if (!link) {
+      console.warn(`[REMPLA-DISPLAY] Lien introuvable pour ts=${ts}`);
+      return;
+    }
 
-    if (!headerA || !headerB) return;
+    const cell = link.closest('td');
+    if (!cell) return;
 
-    // Créer un conteneur entre les deux colonnes
-    const rectA = headerA.getBoundingClientRect();
-    const rectB = headerB.getBoundingClientRect();
-    
-    const middleX = (rectA.right + rectB.left) / 2;
-    
-    // Positionner l'astérisque
+    // Positionner l'astérisque au-dessus
+    const rect = cell.getBoundingClientRect();
     const asterisk = this.createAsterisk();
+    
     asterisk.style.position = 'fixed';
-    asterisk.style.left = `${middleX}px`;
-    asterisk.style.top = `${rectA.top - 15}px`;
-    asterisk.style.transform = 'translateX(-50%)';
+    asterisk.style.left = `${rect.left + rect.width / 2 - 10}px`;
+    asterisk.style.top = `${rect.top - 25}px`;
     
     document.body.appendChild(asterisk);
     this.asterisks.push(asterisk);
     
-    console.log(`[REMPLA-DISPLAY] Astérisque ajouté entre ${tsA} et ${tsB}`);
+    console.log(`[REMPLA-DISPLAY] ✅ Astérisque ajouté au-dessus ts=${ts}`);
+  }
+
+  /**
+   * Ajoute un astérisque sur le bord droit de la colonne précédente
+   */
+  addAsteriskAfterPreviousColumn(table, dayNum, datesToTs, order, year, month) {
+    // Chercher la colonne précédente la plus proche
+    let previousTs = null;
+    let previousDay = null;
+    
+    for (let d = dayNum - 1; d >= 1; d--) {
+      const testDate = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      const testTs = datesToTs.get(testDate);
+      
+      if (testTs) {
+        previousTs = testTs;
+        previousDay = d;
+        break;
+      }
+    }
+    
+    if (!previousTs) {
+      console.warn(`[REMPLA-DISPLAY] Pas de colonne précédente pour jour ${dayNum}`);
+      return;
+    }
+
+    const headerRow = table.querySelector('thead tr.h1');
+    if (!headerRow) return;
+
+    const link = headerRow.querySelector(`a[href*="ts=${previousTs}"]`);
+    if (!link) return;
+
+    const cell = link.closest('td');
+    if (!cell) return;
+
+    // Positionner l'astérisque sur le bord droit de la cellule
+    const rect = cell.getBoundingClientRect();
+    const asterisk = this.createAsterisk();
+    
+    asterisk.style.position = 'fixed';
+    asterisk.style.left = `${rect.right - 5}px`;
+    asterisk.style.top = `${rect.top - 25}px`;
+    
+    document.body.appendChild(asterisk);
+    this.asterisks.push(asterisk);
+    
+    console.log(`[REMPLA-DISPLAY] ✅ Astérisque ajouté après jour ${previousDay} pour rempla du ${dayNum}`);
   }
 }
 
