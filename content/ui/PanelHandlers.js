@@ -83,7 +83,7 @@ class PanelHandlers {
             }
           }
         } catch (error) {
-          console.error('[ICN-PANEL] Toggle contours error:', error);
+          window.ICN_DEBUG.error('[ICN-PANEL] Toggle contours error:', error);
         }
       });
     }
@@ -95,7 +95,7 @@ class PanelHandlers {
         try {
           await window.ICN_STORAGE.set({ icn_olaf_autoload: e.target.checked });
         } catch (error) {
-          console.error('[ICN-PANEL] Auto-load toggle error:', error);
+          window.ICN_DEBUG.error('[ICN-PANEL] Auto-load toggle error:', error);
         }
       });
     }
@@ -112,7 +112,7 @@ class PanelHandlers {
             await window.ICN_STORAGE.remove('olaf_pass');
           }
         } catch (error) {
-          console.error('[ICN-PANEL] Remember toggle error:', error);
+          window.ICN_DEBUG.error('[ICN-PANEL] Remember toggle error:', error);
         }
       });
     }
@@ -257,8 +257,8 @@ class PanelHandlers {
 
       this.showStatus(statusEl, '✅ Chargement terminé', 'success');
     } catch (err) {
-      console.error('[ICN-PANEL] handleOlafLoad error:', err);
-      console.error('[ICN-PANEL] Error message:', err.message);
+      window.ICN_DEBUG.error('[ICN-PANEL] handleOlafLoad error:', err);
+      window.ICN_DEBUG.error('[ICN-PANEL] Error message:', err.message);
       this.showStatus(statusEl, `❌ ${err.message}`, 'error');
     }
   }
@@ -449,7 +449,7 @@ class PanelHandlers {
     
     await window.ICN_STORAGE.set({ icn_cycle_config: config });
     
-    console.log('[ICN] Config cycle sauvegardée:', config);
+    window.ICN_DEBUG.log('[ICN] Config cycle sauvegardée:', config);
     
     // Rafraîchir les contours automatiquement
     const enabled = await window.ICN_STORAGE.get('icn_enabled');

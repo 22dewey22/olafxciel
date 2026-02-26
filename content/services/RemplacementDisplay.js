@@ -139,14 +139,14 @@ class RemplacementDisplay {
     const remplaResult = await window.ICN_REMPLA.getRemplacements();
     
     if (!remplaResult.ok) {
-      console.error('[REMPLA-DISPLAY] Erreur chargement:', remplaResult.error);
+      window.ICN_DEBUG.error('[REMPLA-DISPLAY] Erreur chargement:', remplaResult.error);
       return;
     }
 
     const remplasByDate = remplaResult.demandes;
     
     if (remplasByDate.size === 0) {
-      console.log('[REMPLA-DISPLAY] Aucune demande de remplacement');
+      window.ICN_DEBUG.log('[REMPLA-DISPLAY] Aucune demande de remplacement');
       return;
     }
 
@@ -156,7 +156,7 @@ class RemplacementDisplay {
     const parsed = parser.parseMonthLabel(monthLabel);
     
     if (!parsed) {
-      console.error('[REMPLA-DISPLAY] Impossible de parser le mois');
+      window.ICN_DEBUG.error('[REMPLA-DISPLAY] Impossible de parser le mois');
       return;
     }
 
@@ -171,7 +171,7 @@ class RemplacementDisplay {
       }
     }
 
-    console.log(`[REMPLA-DISPLAY] ${remplasDuMois.size} dates avec remplas en ${monthLabel}`);
+    window.ICN_DEBUG.log(`[REMPLA-DISPLAY] ${remplasDuMois.size} dates avec remplas en ${monthLabel}`);
 
     if (remplasDuMois.size === 0) return;
 
@@ -179,7 +179,7 @@ class RemplacementDisplay {
     const order = window.ICN_DOM.getTsOrderAndLabels();
     
     if (!order || order.length === 0) {
-      console.error('[REMPLA-DISPLAY] Impossible de récupérer les colonnes');
+      window.ICN_DEBUG.error('[REMPLA-DISPLAY] Impossible de récupérer les colonnes');
       return;
     }
 
@@ -247,7 +247,7 @@ class RemplacementDisplay {
       remplaRuns.push(currentRun);
     }
 
-    console.log('[REMPLA-DISPLAY] Runs de remplas:', remplaRuns);
+    window.ICN_DEBUG.log('[REMPLA-DISPLAY] Runs de remplas:', remplaRuns);
 
     // Récupérer la config du cycle pour déterminer les jours travaillés
     const cycleConfig = await window.ICN_CONST.getCycleConfig();
@@ -316,7 +316,7 @@ class RemplacementDisplay {
     // Chercher le <a> avec href contenant ce ts
     const link = headerRow.querySelector(`a[href*="ts=${ts}"]`);
     if (!link) {
-      console.warn(`[REMPLA-DISPLAY] Lien introuvable pour ts=${ts}`);
+      window.ICN_DEBUG.warn(`[REMPLA-DISPLAY] Lien introuvable pour ts=${ts}`);
       return;
     }
 
@@ -346,7 +346,7 @@ class RemplacementDisplay {
     table.appendChild(asterisk);
     this.asterisks.push(asterisk);
     
-    console.log(`[REMPLA-DISPLAY] ✅ Astérisque ajouté au-dessus ts=${ts}`);
+    window.ICN_DEBUG.log(`[REMPLA-DISPLAY] ✅ Astérisque ajouté au-dessus ts=${ts}`);
   }
 
   /**
@@ -371,11 +371,11 @@ class RemplacementDisplay {
     // Si pas de colonne précédente, utiliser la première colonne du tableau
     if (!previousTs && order.length > 0) {
       previousTs = order[0].ts;
-      console.log(`[REMPLA-DISPLAY] Pas de colonne précédente pour jour ${dayNum}, utilisation de la première colonne`);
+      window.ICN_DEBUG.log(`[REMPLA-DISPLAY] Pas de colonne précédente pour jour ${dayNum}, utilisation de la première colonne`);
     }
     
     if (!previousTs) {
-      console.warn(`[REMPLA-DISPLAY] Pas de colonne disponible pour jour ${dayNum}`);
+      window.ICN_DEBUG.warn(`[REMPLA-DISPLAY] Pas de colonne disponible pour jour ${dayNum}`);
       return;
     }
 
@@ -414,12 +414,12 @@ class RemplacementDisplay {
     this.asterisks.push(asterisk);
     
     if (previousDay) {
-      console.log(`[REMPLA-DISPLAY] ✅ Astérisque ajouté après jour ${previousDay} pour rempla du ${dayNum}`);
+      window.ICN_DEBUG.log(`[REMPLA-DISPLAY] ✅ Astérisque ajouté après jour ${previousDay} pour rempla du ${dayNum}`);
     } else {
-      console.log(`[REMPLA-DISPLAY] ✅ Astérisque ajouté avant la première colonne pour rempla du ${dayNum}`);
+      window.ICN_DEBUG.log(`[REMPLA-DISPLAY] ✅ Astérisque ajouté avant la première colonne pour rempla du ${dayNum}`);
     }
   }
 }
 
 window.ICN_REMPLA_DISPLAY = new RemplacementDisplay();
-console.log('[ICN-REMPLA-DISPLAY] Remplacement display module loaded');
+window.ICN_DEBUG.log('[ICN-REMPLA-DISPLAY] Remplacement display module loaded');
