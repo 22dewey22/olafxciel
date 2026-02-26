@@ -231,7 +231,7 @@ class OlafClient {
     return { ok: true, days };
     
     } catch (error) {
-      console.error('[ICN-OLAF] buildReport failed:', error);
+      window.ICN_DEBUG.error('[ICN-OLAF] buildReport failed:', error);
       return { ok: false, error: error.message || String(error) };
     }
   }

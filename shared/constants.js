@@ -59,7 +59,7 @@ window.ICN_DEBUG = {
           window.ICN_DEBUG.log('[ICN-STORAGE] ✓ browser.storage.get:', keys, '→', result);
           return result;
         } catch (browserError) {
-          console.warn('[ICN-STORAGE] ⚠️ browser.storage failed:', browserError.message);
+          window.ICN_DEBUG.warn('[ICN-STORAGE] ⚠️ browser.storage failed:', browserError.message);
         }
       }
       
@@ -79,7 +79,7 @@ window.ICN_DEBUG = {
         window.ICN_DEBUG.log('[ICN-STORAGE] ✓ localStorage.get:', keys, '→', result);
         return result;
       } catch (localError) {
-        console.warn('[ICN-STORAGE] ⚠️ localStorage failed:', localError.message);
+        window.ICN_DEBUG.warn('[ICN-STORAGE] ⚠️ localStorage failed:', localError.message);
       }
       
       // Tentative 3 : mémoire
@@ -89,7 +89,7 @@ window.ICN_DEBUG = {
           result[key] = memoryStorage[key];
         }
       }
-      console.log('[ICN-STORAGE] ⚠️ Using memory storage:', keys, '→', result);
+      window.ICN_DEBUG.log('[ICN-STORAGE] ⚠️ Using memory storage:', keys, '→', result);
       return result;
     },
     
@@ -102,7 +102,7 @@ window.ICN_DEBUG = {
           window.ICN_DEBUG.log('[ICN-STORAGE] ✓ browser.storage.set:', items);
           return;
         } catch (browserError) {
-          console.warn('[ICN-STORAGE] ⚠️ browser.storage.set failed:', browserError.message);
+          window.ICN_DEBUG.warn('[ICN-STORAGE] ⚠️ browser.storage.set failed:', browserError.message);
         }
       }
       
@@ -120,7 +120,7 @@ window.ICN_DEBUG = {
         window.ICN_DEBUG.log('[ICN-STORAGE] ✓ localStorage.set:', items);
         return;
       } catch (localError) {
-        console.warn('[ICN-STORAGE] ⚠️ localStorage.set failed:', localError.message);
+        window.ICN_DEBUG.warn('[ICN-STORAGE] ⚠️ localStorage.set failed:', localError.message);
       }
       
       // Tentative 3 : mémoire
@@ -129,7 +129,7 @@ window.ICN_DEBUG = {
           memoryStorage[key] = items[key];
         }
       }
-      console.log('[ICN-STORAGE] ⚠️ Using memory storage.set:', items);
+      window.ICN_DEBUG.log('[ICN-STORAGE] ⚠️ Using memory storage.set:', items);
     },
     
     async remove(keys) {
@@ -142,7 +142,7 @@ window.ICN_DEBUG = {
           await browser.storage.local.remove(keys);
           window.ICN_DEBUG.log('[ICN-STORAGE] ✓ browser.storage.remove:', keys);
         } catch (e) {
-          console.warn('[ICN-STORAGE] ⚠️ browser.storage.remove failed:', e.message);
+          window.ICN_DEBUG.warn('[ICN-STORAGE] ⚠️ browser.storage.remove failed:', e.message);
         }
       }
       
@@ -152,7 +152,7 @@ window.ICN_DEBUG = {
           localStorage.removeItem('icn_' + key);
         }
       } catch (e) {
-        console.warn('[ICN-STORAGE] ⚠️ localStorage.remove failed:', e.message);
+        window.ICN_DEBUG.warn('[ICN-STORAGE] ⚠️ localStorage.remove failed:', e.message);
       }
       
       // Tentative 3 : mémoire
@@ -185,7 +185,7 @@ window.ICN_CONST = {
       const result = await window.ICN_STORAGE.get(this.KEY_CYCLE_CONFIG);
       return result[this.KEY_CYCLE_CONFIG] || this.DEFAULT_CYCLE_CONFIG;
     } catch (e) {
-      console.warn('[ICN] getCycleConfig fallback to default:', e);
+      window.ICN_DEBUG.warn('[ICN] getCycleConfig fallback to default:', e);
       return this.DEFAULT_CYCLE_CONFIG;
     }
   },
