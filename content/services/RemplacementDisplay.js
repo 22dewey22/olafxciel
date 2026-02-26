@@ -139,14 +139,14 @@ class RemplacementDisplay {
     const remplaResult = await window.ICN_REMPLA.getRemplacements();
     
     if (!remplaResult.ok) {
-      window.ICN_DEBUG.error('[REMPLA-DISPLAY] Erreur chargement:', remplaResult.error);
+      console.error('[REMPLA-DISPLAY] Erreur chargement:', remplaResult.error);
       return;
     }
 
     const remplasByDate = remplaResult.demandes;
     
     if (remplasByDate.size === 0) {
-      window.ICN_DEBUG.log('[REMPLA-DISPLAY] Aucune demande de remplacement');
+      console.log('[REMPLA-DISPLAY] Aucune demande de remplacement');
       return;
     }
 
@@ -156,7 +156,7 @@ class RemplacementDisplay {
     const parsed = parser.parseMonthLabel(monthLabel);
     
     if (!parsed) {
-      window.ICN_DEBUG.error('[REMPLA-DISPLAY] Impossible de parser le mois');
+      console.error('[REMPLA-DISPLAY] Impossible de parser le mois');
       return;
     }
 
@@ -171,7 +171,7 @@ class RemplacementDisplay {
       }
     }
 
-    window.ICN_DEBUG.log(`[REMPLA-DISPLAY] ${remplasDuMois.size} dates avec remplas en ${monthLabel}`);
+    console.log(`[REMPLA-DISPLAY] ${remplasDuMois.size} dates avec remplas en ${monthLabel}`);
 
     if (remplasDuMois.size === 0) return;
 
@@ -179,7 +179,7 @@ class RemplacementDisplay {
     const order = window.ICN_DOM.getTsOrderAndLabels();
     
     if (!order || order.length === 0) {
-      window.ICN_DEBUG.error('[REMPLA-DISPLAY] Impossible de récupérer les colonnes');
+      console.error('[REMPLA-DISPLAY] Impossible de récupérer les colonnes');
       return;
     }
 
@@ -247,20 +247,13 @@ class RemplacementDisplay {
       remplaRuns.push(currentRun);
     }
 
-    window.ICN_DEBUG.log('[REMPLA-DISPLAY] Runs de remplas:', remplaRuns);
+    console.log('[REMPLA-DISPLAY] Runs de remplas:', remplaRuns);
 
     // Récupérer la config du cycle pour déterminer les jours travaillés
-    const cycleConfig = await window.ICN_STORAGE.get('icn_cycle_config');
-    window.ICN_DEBUG.log('[REMPLA-DISPLAY] Cycle config récupérée:', cycleConfig);
-    
-    const hasCycleConfig = cycleConfig.icn_cycle_config && 
-                           cycleConfig.icn_cycle_config.cycleStartDate &&
-                           cycleConfig.icn_cycle_config.cycleLength > 0;
-    
-    window.ICN_DEBUG.log('[REMPLA-DISPLAY] Has cycle config?', hasCycleConfig);
-    if (hasCycleConfig) {
-      window.ICN_DEBUG.log('[REMPLA-DISPLAY] Config:', cycleConfig.icn_cycle_config);
-    }
+    const cycleConfig = await window.ICN_CONST.getCycleConfig();
+    const hasCycleConfig = cycleConfig && 
+                           cycleConfig.cycleStartDate &&
+                           cycleConfig.cycleLength > 0;
 
     // Pour chaque run, afficher une seule étoile
     for (const run of remplaRuns) {
@@ -269,11 +262,9 @@ class RemplacementDisplay {
       
       // Vérifier si c'est un jour travaillé selon le cycle configuré
       if (hasCycleConfig) {
-        const isJourTravaille = this.isWorkingDay(dateStr, cycleConfig.icn_cycle_config);
-        window.ICN_DEBUG.log(`[REMPLA-DISPLAY] Date ${dateStr}: jour travaillé? ${isJourTravaille}`);
+        const isJourTravaille = this.isWorkingDay(dateStr, cycleConfig);
         
         if (isJourTravaille) {
-          window.ICN_DEBUG.log(`[REMPLA-DISPLAY] ⏭️  Jour ${firstDay} ignoré (jour travaillé selon cycle)`);
           continue;
         }
       }
@@ -325,7 +316,7 @@ class RemplacementDisplay {
     // Chercher le <a> avec href contenant ce ts
     const link = headerRow.querySelector(`a[href*="ts=${ts}"]`);
     if (!link) {
-      window.ICN_DEBUG.warn(`[REMPLA-DISPLAY] Lien introuvable pour ts=${ts}`);
+      console.warn(`[REMPLA-DISPLAY] Lien introuvable pour ts=${ts}`);
       return;
     }
 
@@ -355,7 +346,7 @@ class RemplacementDisplay {
     table.appendChild(asterisk);
     this.asterisks.push(asterisk);
     
-    window.ICN_DEBUG.log(`[REMPLA-DISPLAY] ✅ Astérisque ajouté au-dessus ts=${ts}`);
+    console.log(`[REMPLA-DISPLAY] ✅ Astérisque ajouté au-dessus ts=${ts}`);
   }
 
   /**
@@ -378,7 +369,7 @@ class RemplacementDisplay {
     }
     
     if (!previousTs) {
-      window.ICN_DEBUG.warn(`[REMPLA-DISPLAY] Pas de colonne précédente pour jour ${dayNum}`);
+      console.warn(`[REMPLA-DISPLAY] Pas de colonne précédente pour jour ${dayNum}`);
       return;
     }
 
@@ -414,9 +405,9 @@ class RemplacementDisplay {
     table.appendChild(asterisk);
     this.asterisks.push(asterisk);
     
-    window.ICN_DEBUG.log(`[REMPLA-DISPLAY] ✅ Astérisque ajouté après jour ${previousDay} pour rempla du ${dayNum}`);
+    console.log(`[REMPLA-DISPLAY] ✅ Astérisque ajouté après jour ${previousDay} pour rempla du ${dayNum}`);
   }
 }
 
 window.ICN_REMPLA_DISPLAY = new RemplacementDisplay();
-window.ICN_DEBUG.log('[ICN-REMPLA-DISPLAY] Remplacement display module loaded');
+console.log('[ICN-REMPLA-DISPLAY] Remplacement display module loaded');
