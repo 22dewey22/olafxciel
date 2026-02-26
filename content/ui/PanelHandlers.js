@@ -445,6 +445,11 @@ class PanelHandlers {
     if (enabled.icn_enabled && window.ICN_OUTLINE) {
       await window.ICN_OUTLINE.apply();
     }
+    
+    // Rafraîchir les remplacements automatiquement
+    if (enabled.icn_enabled && window.ICN_REMPLA_DISPLAY) {
+      await window.ICN_REMPLA_DISPLAY.apply();
+    }
   }
 
   // ========== MODE D'APPRENTISSAGE ==========
