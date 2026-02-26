@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "OLAF x CIEL",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Compare automatiquement les plannings CIEL et OLAF avec coloration visuelle des différences.",
 
   "author": "Dewey",
