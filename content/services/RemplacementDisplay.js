@@ -368,8 +368,14 @@ class RemplacementDisplay {
       }
     }
     
+    // Si pas de colonne précédente, utiliser la première colonne du tableau
+    if (!previousTs && order.length > 0) {
+      previousTs = order[0].ts;
+      console.log(`[REMPLA-DISPLAY] Pas de colonne précédente pour jour ${dayNum}, utilisation de la première colonne`);
+    }
+    
     if (!previousTs) {
-      console.warn(`[REMPLA-DISPLAY] Pas de colonne précédente pour jour ${dayNum}`);
+      console.warn(`[REMPLA-DISPLAY] Pas de colonne disponible pour jour ${dayNum}`);
       return;
     }
 
@@ -392,8 +398,10 @@ class RemplacementDisplay {
     const tableRect = table.getBoundingClientRect();
     const cellRect = cell.getBoundingClientRect();
     
-    // Calculer position relative au tableau, décalée vers la gauche de la moitié de l'astérisque (10px pour font-size 20px)
-    const leftRelative = cellRect.right - tableRect.left - 10;
+    // Si pas de jour précédent trouvé (première colonne), placer sur le bord gauche
+    const leftRelative = previousDay 
+      ? cellRect.right - tableRect.left - 10  // Bord droit de la colonne précédente
+      : cellRect.left - tableRect.left - 10;  // Bord gauche de la première colonne
     
     // Positionner l'astérisque sur le bord droit (absolute par rapport au tableau)
     const asterisk = this.createAsterisk(daysForTooltip, remplasByDate);
@@ -405,7 +413,11 @@ class RemplacementDisplay {
     table.appendChild(asterisk);
     this.asterisks.push(asterisk);
     
-    console.log(`[REMPLA-DISPLAY] ✅ Astérisque ajouté après jour ${previousDay} pour rempla du ${dayNum}`);
+    if (previousDay) {
+      console.log(`[REMPLA-DISPLAY] ✅ Astérisque ajouté après jour ${previousDay} pour rempla du ${dayNum}`);
+    } else {
+      console.log(`[REMPLA-DISPLAY] ✅ Astérisque ajouté avant la première colonne pour rempla du ${dayNum}`);
+    }
   }
 }
 
