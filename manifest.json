@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "OLAF x CIEL",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Compare automatiquement les plannings CIEL et OLAF avec coloration visuelle des différences.",
 
   "author": "Dewey",
@@ -48,8 +48,10 @@
   "content_scripts": [
     {
       "matches": [
-        "*://www.icnagenda.fr/ciel/*",
-        "*://icnagenda.fr/ciel/*"
+        "*://www.icnagenda.fr/ciel/[0-9][0-9]/[0-9][0-9][0-9][0-9]",
+        "*://icnagenda.fr/ciel/[0-9][0-9]/[0-9][0-9][0-9][0-9]",
+        "*://www.icnagenda.fr/ciel/ciel.php",
+        "*://icnagenda.fr/ciel/ciel.php"
       ],
       "js": [
         "shared/constants.js",
