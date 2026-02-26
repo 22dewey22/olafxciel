@@ -11,7 +11,7 @@ if (typeof browser === 'undefined') {
  * IMPORTANT: Doit être défini EN PREMIER avant tout le reste
  */
 window.ICN_DEBUG = {
-  enabled: true, // Mettre à true pour activer les logs de debug
+  enabled: false, // Mettre à true pour activer les logs de debug
   forceLocalStorage: false, // Mettre à true pour forcer localStorage (contourner browser.storage bloqué)
   
   log(...args) {
