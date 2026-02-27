@@ -11,13 +11,14 @@
 ## 🚀 Fonctionnalités à venir
 
 - **Envoi des congés depuis CIEL** — Permettre la soumission de demandes de congés directement via l'interface CIEL sans passer par OLAF
+- **Personnalisation** — Personnalisation des couleurs d'outline
 
 ---
 
 ## 🎨 Design
 ---
 
-- **Nouveau design** — Refonte visuelle de l'interface de l'extension
+- **Nouveau design** — Intégration de l'app au design de ciel
 
 
 ## ✅ Terminé
