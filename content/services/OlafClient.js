@@ -9,9 +9,16 @@ class OlafClient {
     this.EXCLUDED_IDS = [];
   }
 
+  bytesToBase64(bytes) {
+    const binString = Array.from(bytes, (byte) =>
+      String.fromCodePoint(byte),
+    ).join("");
+    return btoa(binString);
+  }
+
   async detectCible(login, pass) {
     try {
-      const authHeader = "Basic " + btoa(`${login}:${pass}`);
+      const authHeader = "Basic " + this.bytesToBase64(new TextEncoder().encode(`${login}:${pass}`));
       const url = `${this.BASE_URL}/dist/module/planningMonth.php?page_id=40`;
       
       const response = await fetch(url, {
@@ -74,7 +81,7 @@ class OlafClient {
     });
 
     try {
-      const authHeader = "Basic " + btoa(`${login}:${pass}`);
+      const authHeader = "Basic " + this.bytesToBase64(new TextEncoder().encode(`${login}:${pass}`));
       const response = await fetch(`${this.BASE_URL}/dist/ajax/planningMonth/afficherMois.php`, {
         method: "POST",
         headers: {
