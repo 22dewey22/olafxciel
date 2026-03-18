@@ -7,6 +7,12 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-03-18
+
+### Fixed
+- **PR B.G.** : Gestion des caractères exotiques pour requête vers Olaf
+- **Manifest.json** : Adaptation à la maj de Ciel (changement d'url dans la nav)
+
 ## [0.2.0] - 2026-02-25
 
 ### Added
