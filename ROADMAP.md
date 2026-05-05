@@ -18,10 +18,10 @@
 ## 🎨 Design
 ---
 
-- **Nouveau design** — Intégration de l'app au design de ciel
-
 
 ## ✅ Terminé
+
+- **Nouveau design** — Intégration de l'app au design de ciel
 
 - **Bug sur certains noms de famille composés** — Correction d'un comportement anormal identifié sur ce planning
 

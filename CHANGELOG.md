@@ -7,6 +7,13 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-03-18
+
+### Fixed
+- **Extension cassée** : Rework de l'extension suite a MaJ de ciel qui a tout casse
+- **Design** : Nouveau design plus sobre
+- **Rempla display** : Bug suite a MaJ ciel
+
 ## [0.2.3] - 2026-03-18
 
 ### Fixed

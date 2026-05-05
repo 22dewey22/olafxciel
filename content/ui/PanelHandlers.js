@@ -152,11 +152,6 @@ class PanelHandlers {
     }
 
     // Copy diff button
-    const copyDiffBtn = panel.querySelector('#icn-copy-diff');
-    if (copyDiffBtn) {
-      copyDiffBtn.addEventListener('click', () => this.handleDiffCopy());
-    }
-
     // Learning mode radio buttons
     const learningModeRadios = panel.querySelectorAll('input[name="learning-mode"]');
     learningModeRadios.forEach(radio => {
@@ -188,17 +183,16 @@ class PanelHandlers {
     this.showStatus(statusEl, '⏳ Chargement OLAF...', 'info');
 
     try {
-      // Save credentials
+      // Sauvegarder les credentials
       await window.ICN_STORAGE.set({
         olaf_login: login,
         olaf_pass: remember ? pass : '',
         olaf_remember: remember
       });
 
-      // Detect cible
+      // Détecter la cible
       let cible = null;
       const storedCible = await window.ICN_STORAGE.get('icn_olaf_cible');
-      
       if (storedCible.icn_olaf_cible) {
         cible = storedCible.icn_olaf_cible;
       } else {
@@ -210,16 +204,10 @@ class PanelHandlers {
         cible = detection.cible;
       }
 
-      // Get CIEL data
-      const cielData = await window.ICN_REPORT.buildReport();
-      if (!cielData || !cielData.ok) {
-        this.showStatus(statusEl, '❌ Erreur lecture CIEL', 'error');
-        return;
-      }
-
-      // Parse month/year
+      // Lire le mois affiché depuis le DOM directement
+      const monthLabel = window.ICN_DOM.getMonthLabel();
       const parser = new CielParser();
-      const parsed = parser.parseMonthLabel(cielData.month_label);
+      const parsed = parser.parseMonthLabel(monthLabel);
       if (!parsed) {
         this.showStatus(statusEl, '❌ Impossible de déterminer le mois', 'error');
         return;
@@ -227,35 +215,21 @@ class PanelHandlers {
 
       const { year, month } = parsed;
 
-      // Fetch OLAF
-      const olafReport = await window.ICN_OLAF.buildReport({
-        login,
-        pass,
-        year,
-        month,
-        cible
-      });
-
+      // Récupérer les données OLAF
+      const olafReport = await window.ICN_OLAF.buildReport({ login, pass, year, month, cible });
       if (!olafReport.ok) {
         this.showStatus(statusEl, `❌ ${olafReport.error}`, 'error');
         return;
       }
 
-      // Store OLAF data
+      // Stocker les données OLAF
       const olafDataToStore = {};
       for (const day of olafReport.days || []) {
-        olafDataToStore[day.day_str] = {
-          alpha: day.alpha,
-          beta: day.beta
-        };
+        olafDataToStore[day.day_str] = { alpha: day.alpha, beta: day.beta };
       }
       await window.ICN_STORAGE.set({ icn_olaf_data: olafDataToStore });
 
-      // Generate diff
-      const diffText = this.generateDiff(cielData, olafReport, month);
-      await window.ICN_STORAGE.set({ icn_diff_report: diffText });
-
-      // Refresh outlines
+      // Rafraîchir les contours
       const enabled = await window.ICN_STORAGE.get('icn_enabled');
       if (enabled.icn_enabled) {
         await window.ICN_OUTLINE.apply();
@@ -264,89 +238,7 @@ class PanelHandlers {
       this.showStatus(statusEl, '✅ Chargement terminé', 'success');
     } catch (err) {
       window.ICN_DEBUG.error('[ICN-PANEL] handleOlafLoad error:', err);
-      window.ICN_DEBUG.error('[ICN-PANEL] Error message:', err.message);
       this.showStatus(statusEl, `❌ ${err.message}`, 'error');
-    }
-  }
-
-  generateDiff(cielData, olafReport, month) {
-    const olafByDay = new Map();
-    for (const d of olafReport.days || []) {
-      // d.alpha et d.beta sont maintenant des objets {nom: statut}
-      // Convertir les noms complets OLAF en TRI (3 premières lettres du nom)
-      const alphaTRI = new Set(Object.keys(d.alpha).map(name => {
-        const parts = name.split(' ');
-        const lastName = parts[parts.length - 1]; // Dernier mot = nom de famille
-        return lastName.substring(0, 3).toUpperCase();
-      }));
-      
-      const betaTRI = new Set(Object.keys(d.beta).map(name => {
-        const parts = name.split(' ');
-        const lastName = parts[parts.length - 1];
-        return lastName.substring(0, 3).toUpperCase();
-      }));
-      
-      olafByDay.set(d.day_str, {
-        alpha: alphaTRI,
-        beta: betaTRI
-      });
-    }
-
-    const diffLines = [];
-    diffLines.push(`Diff Olaf ↔ CIEL • ${cielData.month_label} • ${cielData.days.length} jour(s)`);
-    diffLines.push('');
-
-    let hasDiff = false;
-
-    for (const d of cielData.days) {
-      // Filter out days not in current month
-      const dayDate = new Date(d.day_str);
-      if (dayDate.getMonth() + 1 !== month) {
-        continue;
-      }
-
-      const cielAlpha = new Set((d.alpha_agents || '').split(/\s+/).filter(Boolean));
-      const cielBeta = new Set((d.beta_agents || '').split(/\s+/).filter(Boolean));
-
-      const olafDay = olafByDay.get(d.day_str);
-      const olafAlpha = olafDay ? olafDay.alpha : new Set();
-      const olafBeta = olafDay ? olafDay.beta : new Set();
-
-      const alphaPlus = [...olafAlpha].filter(x => !cielAlpha.has(x)).sort();
-      const alphaMinus = [...cielAlpha].filter(x => !olafAlpha.has(x)).sort();
-      const betaPlus = [...olafBeta].filter(x => !cielBeta.has(x)).sort();
-      const betaMinus = [...cielBeta].filter(x => !olafBeta.has(x)).sort();
-
-      if (alphaPlus.length || alphaMinus.length || betaPlus.length || betaMinus.length) {
-        hasDiff = true;
-        diffLines.push(`${d.label}  ${d.cycle}`);
-        
-        if (alphaPlus.length) diffLines.push(`  ALPHA manquant CIEL: ${alphaPlus.join(' ')}`);
-        if (alphaMinus.length) diffLines.push(`  ALPHA en trop CIEL: ${alphaMinus.join(' ')}`);
-        if (betaPlus.length) diffLines.push(`  BETA manquant CIEL: ${betaPlus.join(' ')}`);
-        if (betaMinus.length) diffLines.push(`  BETA en trop CIEL: ${betaMinus.join(' ')}`);
-        diffLines.push('---');
-      }
-    }
-
-    if (!hasDiff) {
-      diffLines.push('✅ Aucune différence détectée');
-    }
-
-    return diffLines.join('\n');
-  }
-
-  async handleDiffCopy() {
-    const statusEl = this.ui.panel.querySelector('#icn-copy-status');
-    
-    try {
-      const result = await window.ICN_STORAGE.get('icn_diff_report');
-      const diffText = result.icn_diff_report || 'Aucune comparaison disponible';
-      
-      await navigator.clipboard.writeText(diffText);
-      this.showStatus(statusEl, '✅ Copié dans le presse-papier', 'success');
-    } catch (err) {
-      this.showStatus(statusEl, '❌ Erreur de copie', 'error');
     }
   }
 
