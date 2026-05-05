@@ -23,12 +23,19 @@ class RemplacementDisplay {
     asterisk.setAttribute('data-icn-ignore', '1');
     asterisk.style.cssText = `
       position: absolute;
-      color: #ef4444;
-      font-size: 20px;
+      color: #cc0000;
+      font-size: 16px;
       font-weight: bold;
-      z-index: 1000;
+      z-index: 1002;
       cursor: pointer;
-      text-shadow: 0 0 4px rgba(239, 68, 68, 0.8);
+      line-height: 1;
+      text-shadow:
+        -2px -2px 0 #fff,
+         2px -2px 0 #fff,
+        -2px  2px 0 #fff,
+         2px  2px 0 #fff,
+         0    0   3px rgba(0,0,0,0.4);
+      pointer-events: auto;
     `;
     asterisk.textContent = '★';
     
@@ -306,117 +313,109 @@ class RemplacementDisplay {
   }
 
   /**
-   * Ajoute un astérisque au-dessus d'une colonne existante
+   * Trouve parmi les tr.h1 du thead celle qui contient les liens historique.php?ts=
+   * (robuste face à la ciel-mini-filtre-row ajoutée en 2026)
    */
-  addAsteriskAboveColumn(table, ts, run, year, month, remplasByDate) {
-    // Trouver la cellule header avec ce timestamp
-    const headerRow = table.querySelector('thead tr.h1');
-    if (!headerRow) return;
-
-    // Chercher le <a> avec href contenant ce ts
-    const link = headerRow.querySelector(`a[href*="ts=${ts}"]`);
-    if (!link) {
-      window.ICN_DEBUG.warn(`[REMPLA-DISPLAY] Lien introuvable pour ts=${ts}`);
-      return;
+  _findDatesRow(table) {
+    const rows = table.querySelectorAll('thead tr.h1');
+    for (const row of rows) {
+      if (row.querySelector("a[href*='ts=']")) return row;
     }
-
-    const cell = link.closest('td');
-    if (!cell) return;
-
-    // Construire les dates YYYYMMDD pour le tooltip
-    const daysForTooltip = run.map(day => year * 10000 + month * 100 + day);
-
-    // S'assurer que le tableau a position relative
-    table.style.position = 'relative';
-
-    // Récupérer les positions
-    const tableRect = table.getBoundingClientRect();
-    const cellRect = cell.getBoundingClientRect();
-    
-    // Calculer position relative au tableau
-    const leftRelative = cellRect.left - tableRect.left + cellRect.width / 2 - 10;
-    
-    // Positionner l'astérisque au-dessus (absolute par rapport au tableau)
-    const asterisk = this.createAsterisk(daysForTooltip, remplasByDate);
-    
-    asterisk.style.position = 'absolute';
-    asterisk.style.left = `${leftRelative}px`;
-    asterisk.style.top = '-25px';
-    
-    table.appendChild(asterisk);
-    this.asterisks.push(asterisk);
-    
-    window.ICN_DEBUG.log(`[REMPLA-DISPLAY] ✅ Astérisque ajouté au-dessus ts=${ts}`);
+    return null;
   }
 
   /**
-   * Ajoute un astérisque sur le bord droit de la colonne précédente
+   * Ajoute un astérisque dans la cellule de la ligne cycles (J1/J2/JE...)
+   * pour un jour visible dans le cahier
+   */
+  addAsteriskAboveColumn(table, ts, run, year, month, remplasByDate) {
+    // La ligne cycles a data-ts directement sur la td (pas la ligne dates)
+    const cycleCell = table.querySelector(`thead td[data-ts="${ts}"]`);
+    if (!cycleCell) {
+      window.ICN_DEBUG.warn(`[REMPLA-DISPLAY] Cellule cycles introuvable pour ts=${ts}`);
+      return;
+    }
+
+    const daysForTooltip = run.map(day => year * 10000 + month * 100 + day);
+    const asterisk = this.createAsterisk(daysForTooltip, remplasByDate);
+
+    cycleCell.style.position = 'relative';
+    cycleCell.style.overflow = 'visible';
+    cycleCell.style.zIndex = '100';
+    asterisk.style.position = 'absolute';
+    asterisk.style.top = '50%';
+    asterisk.style.left = '50%';
+    asterisk.style.transform = 'translate(-50%, -50%)';
+    asterisk.style.fontSize = '14px';
+    asterisk.style.lineHeight = '1';
+    asterisk.style.zIndex = '1001';
+
+    cycleCell.appendChild(asterisk);
+    this.asterisks.push(asterisk);
+
+    window.ICN_DEBUG.log(`[REMPLA-DISPLAY] ✅ Astérisque (centré) dans cellule cycles ts=${ts}`);
+  }
+
+  /**
+   * Ajoute un astérisque sur le bord droit de la cellule cycles du jour précédent,
+   * pour un jour non affiché dans le cahier (entre deux colonnes consécutives)
    */
   addAsteriskAfterPreviousColumn(table, dayNum, datesToTs, order, year, month, run, remplasByDate) {
     // Chercher la colonne précédente la plus proche
     let previousTs = null;
     let previousDay = null;
-    
+
     for (let d = dayNum - 1; d >= 1; d--) {
       const testDate = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
       const testTs = datesToTs.get(testDate);
-      
       if (testTs) {
         previousTs = testTs;
         previousDay = d;
         break;
       }
     }
-    
+
     // Si pas de colonne précédente, utiliser la première colonne du tableau
     if (!previousTs && order.length > 0) {
       previousTs = order[0].ts;
       window.ICN_DEBUG.log(`[REMPLA-DISPLAY] Pas de colonne précédente pour jour ${dayNum}, utilisation de la première colonne`);
     }
-    
+
     if (!previousTs) {
       window.ICN_DEBUG.warn(`[REMPLA-DISPLAY] Pas de colonne disponible pour jour ${dayNum}`);
       return;
     }
 
-    const headerRow = table.querySelector('thead tr.h1');
-    if (!headerRow) return;
+    // Cellule cycles du jour précédent
+    const cycleCell = table.querySelector(`thead td[data-ts="${previousTs}"]`);
+    if (!cycleCell) return;
 
-    const link = headerRow.querySelector(`a[href*="ts=${previousTs}"]`);
-    if (!link) return;
-
-    const cell = link.closest('td');
-    if (!cell) return;
-
-    // Construire les dates YYYYMMDD pour le tooltip
     const daysForTooltip = run.map(day => year * 10000 + month * 100 + day);
-
-    // S'assurer que le tableau a position relative
-    table.style.position = 'relative';
-
-    // Récupérer les positions
-    const tableRect = table.getBoundingClientRect();
-    const cellRect = cell.getBoundingClientRect();
-    
-    // Si pas de jour précédent trouvé (première colonne), placer sur le bord gauche
-    const leftRelative = previousDay 
-      ? cellRect.right - tableRect.left - 10  // Bord droit de la colonne précédente
-      : cellRect.left - tableRect.left - 10;  // Bord gauche de la première colonne
-    
-    // Positionner l'astérisque sur le bord droit (absolute par rapport au tableau)
     const asterisk = this.createAsterisk(daysForTooltip, remplasByDate);
-    
+
+    cycleCell.style.position = 'relative';
+    cycleCell.style.overflow = 'visible';
+    cycleCell.style.zIndex = '100';
     asterisk.style.position = 'absolute';
-    asterisk.style.left = `${leftRelative}px`;
-    asterisk.style.top = '-25px';
-    
-    table.appendChild(asterisk);
-    this.asterisks.push(asterisk);
-    
+    asterisk.style.top = '50%';
+    asterisk.style.lineHeight = '1';
+    asterisk.style.transform = 'translateY(-50%)';
+
     if (previousDay) {
-      window.ICN_DEBUG.log(`[REMPLA-DISPLAY] ✅ Astérisque ajouté après jour ${previousDay} pour rempla du ${dayNum}`);
+      // Bord droit de la colonne précédente → visuellement entre les deux jours
+      asterisk.style.right = '-9px';
     } else {
-      window.ICN_DEBUG.log(`[REMPLA-DISPLAY] ✅ Astérisque ajouté avant la première colonne pour rempla du ${dayNum}`);
+      // Avant la première colonne → bord gauche
+      asterisk.style.left = '-9px';
+    }
+
+    cycleCell.appendChild(asterisk);
+    this.asterisks.push(asterisk);
+
+    if (previousDay) {
+      window.ICN_DEBUG.log(`[REMPLA-DISPLAY] ✅ Astérisque (bord droit) jour ${previousDay} pour rempla du ${dayNum}`);
+    } else {
+      window.ICN_DEBUG.log(`[REMPLA-DISPLAY] ✅ Astérisque (bord gauche) première colonne pour rempla du ${dayNum}`);
     }
   }
 }
