@@ -9,24 +9,56 @@
     return txt || "mois courant";
   }
 
+  // Trouve parmi les tr.h1 du thead celle qui contient les liens historique.php?ts=
+  // Robuste face aux nouvelles lignes insérées par CIEL (ex: ciel-mini-filtre-row)
+  function _findDatesRow(table) {
+    if (!table) return null;
+    const rows = table.querySelectorAll("thead tr.h1");
+    for (const row of rows) {
+      if (row.querySelector("a[href*='ts=']")) return row;
+    }
+    return null;
+  }
+
+  // Trouve la ligne de cycles (celle juste après la ligne des dates, qui contient J1/J2/JE...)
+  function _findCyclesRow(table) {
+    if (!table) return null;
+    const rows = table.querySelectorAll("thead tr.h1");
+    let foundDates = false;
+    for (const row of rows) {
+      if (foundDates) return row;
+      if (row.querySelector("a[href*='ts=']")) foundDates = true;
+    }
+    return null;
+  }
+
   // Récupère l'ordre des colonnes jours à partir des liens historique.php?ts=...
   // -> [{ ts:"1767..", label:"Sam.3" }, ...]
   function getTsOrderAndLabels() {
     const table = getCielTable();
-    const row0 = table?.querySelector("thead tr.h1:nth-of-type(1)");
-    const anchors = row0 ? row0.querySelectorAll("a[href*='ts=']") : [];
-    const out = [];
+    if (!table) {
+      window.ICN_DEBUG.error('[DOM] No table found!');
+      return [];
+    }
 
+    const row0 = _findDatesRow(table);
+    window.ICN_DEBUG.log('[DOM] dates row found:', !!row0);
+
+    const anchors = row0 ? row0.querySelectorAll("a[href*='ts=']") : [];
+    window.ICN_DEBUG.log('[DOM] Anchors found:', anchors.length);
+
+    const out = [];
     for (const a of anchors) {
       const href = a.getAttribute("href") || "";
       const m = /[?&]ts=(\d+)/.exec(href);
       if (!m) continue;
-
       out.push({
         ts: m[1],
         label: (a.textContent || "").replace(/\s+/g, " ").trim()
       });
     }
+
+    window.ICN_DEBUG.log('[DOM] Returning order with', out.length, 'columns');
     return out;
   }
 
@@ -34,7 +66,7 @@
   function getTsToCycleMap() {
     const order = getTsOrderAndLabels().map(x => x.ts);
     const table = getCielTable();
-    const row1 = table?.querySelector("thead tr.h1:nth-of-type(2)");
+    const row1 = _findCyclesRow(table);
     if (!row1) return new Map();
 
     const tds = row1.querySelectorAll("td");
