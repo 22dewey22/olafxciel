@@ -32,22 +32,28 @@ class PanelHandlers {
       });
     }
 
-    // Minimize/Close buttons
+    // Minimize button — toggle collapse/expand
     const minimizeBtn = panel.querySelector('#icn-minimize');
-    const closeBtn = panel.querySelector('#icn-close');
-    
-    if (minimizeBtn) {
-      minimizeBtn.addEventListener('click', () => {
-        panel.classList.toggle('minimized');
-      });
-    }
-    
-    if (closeBtn) {
-      closeBtn.addEventListener('click', () => {
-        panel.classList.add('hidden');
-      });
-    }
 
+    const collapsePanel = () => {
+      panel.classList.add('minimized');
+      if (settingsPanel) settingsPanel.classList.remove('open');
+    };
+
+    const expandPanel = () => {
+      panel.classList.remove('minimized');
+    };
+
+    if (minimizeBtn) {
+      minimizeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (panel.classList.contains('minimized')) {
+          expandPanel();
+        } else {
+          collapsePanel();
+        }
+      });
+    }
     // Toggle contours
     const toggleContours = panel.querySelector('#icn-contours-toggle');
     const contoursStatus = panel.querySelector('#icn-contours-status');
@@ -402,7 +408,7 @@ class PanelHandlers {
       
       for (let day = 1; day <= selectedLength; day++) {
         const btn = document.createElement('label');
-        btn.className = 'icn-mode-btn icn-working-day-btn';
+        btn.className = 'icn-working-day-btn';
 
         const label = document.createElement('span');
         label.className = 'icn-mode-label';
