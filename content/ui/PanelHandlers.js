@@ -63,30 +63,18 @@ class PanelHandlers {
         try {
           const enabled = e.target.checked;
           await window.ICN_STORAGE.set({ icn_enabled: enabled });
-          
+
           if (contoursStatus) {
             contoursStatus.textContent = enabled ? 'Actif' : 'Inactif';
             contoursStatus.style.color = enabled ? '#10b981' : '#6b7280';
           }
 
           if (enabled) {
-            await window.ICN_OUTLINE.apply();
-            
-            // Afficher les remplacements aussi
-            if (window.ICN_REMPLA_DISPLAY) {
-              await window.ICN_REMPLA_DISPLAY.apply();
-            }
+            await window.ICN_MAIN.applyAll();
           } else {
-            await window.ICN_OUTLINE.clearAll();
-            
-            // Nettoyer les remplacements aussi
-            if (window.ICN_REMPLA_DISPLAY) {
-              await window.ICN_REMPLA_DISPLAY.clearAll();
-            }
-            
-            if (window.ICN_TOTALS) {
-              window.ICN_TOTALS.remove();
-            }
+            if (window.ICN_OUTLINE)        await window.ICN_OUTLINE.clearAll();
+            if (window.ICN_REMPLA_DISPLAY) await window.ICN_REMPLA_DISPLAY.clearAll();
+            if (window.ICN_TOTALS)         window.ICN_TOTALS.remove();
           }
         } catch (error) {
           window.ICN_DEBUG.error('[ICN-PANEL] Toggle contours error:', error);
@@ -229,11 +217,8 @@ class PanelHandlers {
       }
       await window.ICN_STORAGE.set({ icn_olaf_data: olafDataToStore });
 
-      // Rafraîchir les contours
-      const enabled = await window.ICN_STORAGE.get('icn_enabled');
-      if (enabled.icn_enabled) {
-        await window.ICN_OUTLINE.apply();
-      }
+      // Rafraîchir les contours via ICN_MAIN
+      await window.ICN_MAIN.applyAll();
 
       this.showStatus(statusEl, '✅ Chargement terminé', 'success');
     } catch (err) {
@@ -346,19 +331,8 @@ class PanelHandlers {
     };
     
     await window.ICN_STORAGE.set({ icn_cycle_config: config });
-    
     window.ICN_DEBUG.log('[ICN] Config cycle sauvegardée:', config);
-    
-    // Rafraîchir les contours automatiquement
-    const enabled = await window.ICN_STORAGE.get('icn_enabled');
-    if (enabled.icn_enabled && window.ICN_OUTLINE) {
-      await window.ICN_OUTLINE.apply();
-    }
-    
-    // Rafraîchir les remplacements automatiquement
-    if (enabled.icn_enabled && window.ICN_REMPLA_DISPLAY) {
-      await window.ICN_REMPLA_DISPLAY.apply();
-    }
+    await window.ICN_MAIN.applyAll();
   }
 
   // ========== MODE D'APPRENTISSAGE ==========
@@ -436,14 +410,7 @@ class PanelHandlers {
     }
     
     await this.updateLearningLists();
-    
-    // Ne refresh les outlines que si le toggle est actif
-    if (window.ICN_OUTLINE) {
-      const enabled = await window.ICN_STORAGE.get('icn_enabled');
-      if (enabled.icn_enabled) {
-        await window.ICN_OUTLINE.apply();
-      }
-    }
+    await window.ICN_MAIN.applyAll();
   }
 
   async updateLearningLists() {
@@ -501,22 +468,15 @@ class PanelHandlers {
       btn.addEventListener('click', async (e) => {
         const type = e.currentTarget.dataset.type;
         const fc = parseInt(e.currentTarget.dataset.fc);
-        
+
         if (type === 'alpha') {
           await window.ICN_RULES.removeAlphaFondclasse(fc);
         } else {
           await window.ICN_RULES.removeBetaFondclasse(fc);
         }
-        
+
         await this.updateLearningLists();
-        
-        // Ne refresh les outlines que si le toggle est actif
-        if (window.ICN_OUTLINE) {
-          const enabled = await window.ICN_STORAGE.get('icn_enabled');
-          if (enabled.icn_enabled) {
-            await window.ICN_OUTLINE.apply();
-          }
-        }
+        await window.ICN_MAIN.applyAll();
       });
     });
   }

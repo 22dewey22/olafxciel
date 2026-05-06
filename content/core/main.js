@@ -1,5 +1,12 @@
 /**
  * Orchestrateur principal
+ *
+ * Les contours (ICN_OUTLINE) et les étoiles (ICN_REMPLA_DISPLAY)
+ * ne sont (re)calculés que dans ces cas précis :
+ *  1. Arrivée sur la page (init) — avec auto-chargement OLAF si activé
+ *  2. Changement de mois détecté par l'observer
+ *  3. Appel explicite à window.ICN_MAIN.applyAll() par PanelHandlers
+ *     (bouton "Mettre à jour les contours", ajout/retrait classe alpha/beta)
  */
 (async function() {
   let tableObserver = null;
@@ -9,6 +16,53 @@
     return Boolean(r.icn_enabled);
   }
 
+  // ── Helpers OLAF ──────────────────────────────────────────────────────────
+
+  async function autoLoadOlaf(monthLabel) {
+    const settings = await window.ICN_STORAGE.get(['icn_olaf_autoload', 'olaf_login', 'olaf_pass', 'icn_olaf_cible']);
+    if (!settings.icn_olaf_autoload || !settings.olaf_login || !settings.olaf_pass) return false;
+
+    const parser = new CielParser();
+    const parsed = parser.parseMonthLabel(monthLabel);
+    if (!parsed) return false;
+
+    const { year, month } = parsed;
+    try {
+      const olafReport = await window.ICN_OLAF.buildReport({
+        login: settings.olaf_login,
+        pass: settings.olaf_pass,
+        year,
+        month,
+        cible: settings.icn_olaf_cible
+      });
+      if (!olafReport.ok) {
+        window.ICN_DEBUG.error('[ICN] Auto-load OLAF échoué:', olafReport.error);
+        return false;
+      }
+      const olafDataToStore = {};
+      for (const day of olafReport.days || []) {
+        olafDataToStore[day.day_str] = { alpha: day.alpha, beta: day.beta };
+      }
+      await window.ICN_STORAGE.set({ icn_olaf_data: olafDataToStore });
+      window.ICN_DEBUG.log('[ICN] ✅ Auto-load OLAF réussi');
+      return true;
+    } catch (err) {
+      window.ICN_DEBUG.error('[ICN] Erreur auto-load OLAF:', err.message || err);
+      return false;
+    }
+  }
+
+  // ── Application des contours ──────────────────────────────────────────────
+
+  async function applyAll() {
+    const enabled = await getEnabled();
+    if (!enabled) return;
+    if (window.ICN_OUTLINE)        await window.ICN_OUTLINE.apply();
+    if (window.ICN_REMPLA_DISPLAY) await window.ICN_REMPLA_DISPLAY.apply();
+  }
+
+  // ── Observer : détecte uniquement le changement de mois ──────────────────
+
   function installObservers() {
     const table = window.ICN_DOM.getCielTable();
     if (!table) return;
@@ -16,97 +70,26 @@
     let lastMonthLabel = window.ICN_DOM.getMonthLabel();
 
     tableObserver = new MutationObserver(async (mutations) => {
-      // Ignorer les mutations causées par nos propres badges
-      const isOnlyBadgeChange = mutations.every(mutation => {
-        return Array.from(mutation.addedNodes).every(node => 
-          node.nodeType === 1 && node.hasAttribute && node.hasAttribute('data-icn-ignore')
-        ) && Array.from(mutation.removedNodes).every(node =>
-          node.nodeType === 1 && node.hasAttribute && node.hasAttribute('data-icn-ignore')
-        );
-      });
-      
-      if (isOnlyBadgeChange) return; // Ignorer si ce sont juste des badges
-      
-      const currentMonthLabel = window.ICN_DOM.getMonthLabel();
-      
-      // Détecter changement de mois
-      if (currentMonthLabel !== lastMonthLabel) {
-        window.ICN_DEBUG.log("[ICN] Month changed:", lastMonthLabel, "→", currentMonthLabel);
-        lastMonthLabel = currentMonthLabel;
-        
-        // Recharger les settings du panel
-        if (window.ICN_PANEL_UI && window.ICN_PANEL_UI.panel) {
-          await window.ICN_PANEL_UI.loadSettings();
-        }
-        
-        // Auto-chargement OLAF si activé
-        const settings = await window.ICN_STORAGE.get(['icn_olaf_autoload', 'olaf_login', 'olaf_pass', 'icn_olaf_cible']);
-        window.ICN_DEBUG.log("[ICN] Settings auto-load:", {
-          autoload: settings.icn_olaf_autoload,
-          hasLogin: !!settings.olaf_login,
-          hasPass: !!settings.olaf_pass,
-          hasCible: !!settings.icn_olaf_cible
-        });
-        
-        if (settings.icn_olaf_autoload && settings.olaf_login && settings.olaf_pass) {
-          window.ICN_DEBUG.log("[ICN] Auto-chargement OLAF...");
-          
-          const parser = new CielParser();
-          const parsed = parser.parseMonthLabel(currentMonthLabel);
-          
-          if (parsed) {
-            const { year, month } = parsed;
-            
-            try {
-              const olafReport = await window.ICN_OLAF.buildReport({
-                login: settings.olaf_login,
-                pass: settings.olaf_pass,
-                year,
-                month,
-                cible: settings.icn_olaf_cible
-              });
+      // Ignorer les mutations issues de nos propres éléments
+      const isOnlyOurs = mutations.every(m =>
+        [...m.addedNodes, ...m.removedNodes].every(n =>
+          n.nodeType === 1 && n.hasAttribute && n.hasAttribute('data-icn-ignore')
+        )
+      );
+      if (isOnlyOurs) return;
 
-              if (olafReport.ok) {
-                // Stocker les données OLAF
-                const olafDataToStore = {};
-                for (const day of olafReport.days || []) {
-                  olafDataToStore[day.day_str] = {
-                    alpha: day.alpha,
-                    beta: day.beta
-                  };
-                }
-                await window.ICN_STORAGE.set({ icn_olaf_data: olafDataToStore });
-                
-                window.ICN_DEBUG.log("[ICN] ✅ Auto-chargement OLAF réussi");
-              } else {
-                window.ICN_DEBUG.error("[ICN] ❌ Auto-chargement OLAF échoué:", olafReport.error);
-                // Ne pas bloquer l'affichage des outlines si OLAF échoue
-              }
-            } catch (err) {
-              window.ICN_DEBUG.error("[ICN] ❌ Erreur auto-chargement OLAF:", err.message || err);
-              window.ICN_DEBUG.error("[ICN] Type d'erreur:", err.name);
-              // Continuer même si OLAF échoue
-            }
-          }
-        }
-        
-        // Appliquer les contours après changement de mois
-        const enabled = await getEnabled();
-        if (enabled && window.ICN_OUTLINE) {
-          await window.ICN_OUTLINE.apply();
-        }
-        
-        // Afficher les remplacements après changement de mois
-        if (enabled && window.ICN_REMPLA_DISPLAY) {
-          await window.ICN_REMPLA_DISPLAY.apply();
-        }
-      }
-      
-      // Appliquer seulement les contours pour les autres mutations (pas les remplacements)
-      const enabled = await getEnabled();
-      if (enabled && window.ICN_OUTLINE) {
-        await window.ICN_OUTLINE.apply();
-      }
+      const currentMonthLabel = window.ICN_DOM.getMonthLabel();
+      if (currentMonthLabel === lastMonthLabel) return; // Pas de changement de mois → rien à faire
+
+      window.ICN_DEBUG.log('[ICN] Mois changé:', lastMonthLabel, '→', currentMonthLabel);
+      lastMonthLabel = currentMonthLabel;
+
+      // Recharger les settings du panel
+      if (window.ICN_PANEL_UI?.panel) await window.ICN_PANEL_UI.loadSettings();
+
+      // Auto-load OLAF si activé puis appliquer les contours
+      await autoLoadOlaf(currentMonthLabel);
+      await applyAll();
     });
 
     tableObserver.observe(table, { childList: true, subtree: true });
@@ -118,240 +101,79 @@
 
   function reconnectObserver() {
     const table = window.ICN_DOM.getCielTable();
-    if (table && tableObserver) {
-      tableObserver.observe(table, { childList: true, subtree: true });
-    }
+    if (table && tableObserver) tableObserver.observe(table, { childList: true, subtree: true });
   }
 
-  // Message handler
+  // ── Message handler ───────────────────────────────────────────────────────
+
   browser.runtime.onMessage.addListener(async (msg) => {
     if (!msg) return;
 
-    if (msg.type === "ICN_TOGGLE") {
+    if (msg.type === 'ICN_TOGGLE') {
       const enabled = Boolean(msg.enabled);
       await window.ICN_STORAGE.set({ icn_enabled: enabled });
-      
       if (enabled) {
-        await window.ICN_OUTLINE.apply();
-        
-        // Afficher les remplacements aussi
-        if (window.ICN_REMPLA_DISPLAY) {
-          await window.ICN_REMPLA_DISPLAY.apply();
-        }
+        await applyAll();
       } else {
-        await window.ICN_OUTLINE.clearAll();
-        
-        // Nettoyer les remplacements aussi
-        if (window.ICN_REMPLA_DISPLAY) {
-          await window.ICN_REMPLA_DISPLAY.clearAll();
-        }
+        if (window.ICN_OUTLINE)        await window.ICN_OUTLINE.clearAll();
+        if (window.ICN_REMPLA_DISPLAY) await window.ICN_REMPLA_DISPLAY.clearAll();
       }
       return;
     }
 
-    if (msg.type === "ICN_GET_ABS_REPORT") {
-      try {
-        return await window.ICN_REPORT.buildReport();
-      } catch (e) {
-        return { ok: false, error: String(e) };
-      }
-    }
-
-    if (msg.type === "ICN_REFRESH_OUTLINES") {
-      const enabled = await getEnabled();
-      if (enabled && window.ICN_OUTLINE) {
-        await window.ICN_OUTLINE.apply();
-      }
-      if (enabled && window.ICN_REMPLA_DISPLAY) {
-        await window.ICN_REMPLA_DISPLAY.apply();
-      }
+    if (msg.type === 'ICN_REFRESH_OUTLINES') {
+      await applyAll();
       return;
     }
   });
 
-  // Init
+  // ── Init ──────────────────────────────────────────────────────────────────
+
   async function init() {
     try {
-      window.ICN_DEBUG.log("[ICN] Initializing...");
-      
-      window.ICN_DEBUG.log("[ICN] Step 1: Creating panel UI...");
+      window.ICN_DEBUG.log('[ICN] Initializing...');
+
       await window.ICN_PANEL_UI.create();
-      window.ICN_DEBUG.log("[ICN] Step 1: ✓ Panel created");
-      
-      window.ICN_DEBUG.log("[ICN] Step 2: Attaching handlers...");
       const handlers = new window.ICN_PANEL_HANDLERS(window.ICN_PANEL_UI);
       await handlers.attach();
-      window.ICN_DEBUG.log("[ICN] Step 2: ✓ Handlers attached");
-      
-      window.ICN_DEBUG.log("[ICN] Step 3: Checking if contours enabled...");
-      const enabled = await getEnabled();
-      window.ICN_DEBUG.log("[ICN] Step 3: Contours enabled =", enabled);
-      
-      if (enabled && window.ICN_OUTLINE) {
-        window.ICN_DEBUG.log("[ICN] Step 4: Applying outlines...");
-        await window.ICN_OUTLINE.apply();
-        window.ICN_DEBUG.log("[ICN] Step 4: ✓ Outlines applied");
-      }
-      
-      if (enabled && window.ICN_REMPLA_DISPLAY) {
-        window.ICN_DEBUG.log("[ICN] Step 4b: Applying remplacements...");
-        await window.ICN_REMPLA_DISPLAY.apply();
-        window.ICN_DEBUG.log("[ICN] Step 4b: ✓ Remplacements applied");
-      }
-      
-      window.ICN_DEBUG.log("[ICN] Step 5: Checking auto-load...");
-      const settings = await window.ICN_STORAGE.get(['icn_olaf_autoload', 'olaf_login', 'olaf_pass', 'icn_olaf_cible']);
-      window.ICN_DEBUG.log("[ICN] Step 5: Auto-load settings:", {
-        autoload: settings.icn_olaf_autoload,
-        hasLogin: !!settings.olaf_login,
-        hasPass: !!settings.olaf_pass,
-        hasCible: !!settings.icn_olaf_cible
-      });
-    
-    if (settings.icn_olaf_autoload && settings.olaf_login && settings.olaf_pass) {
-      window.ICN_DEBUG.log("[ICN] Auto-chargement OLAF à l'init...");
-      
-      const monthLabel = window.ICN_DOM.getMonthLabel();
-      const parser = new CielParser();
-      const parsed = parser.parseMonthLabel(monthLabel);
-      
-      if (parsed) {
-        const { year, month } = parsed;
-        
-        try {
-          const olafReport = await window.ICN_OLAF.buildReport({
-            login: settings.olaf_login,
-            pass: settings.olaf_pass,
-            year,
-            month,
-            cible: settings.icn_olaf_cible
-          });
 
-          if (olafReport.ok) {
-            // Stocker les données OLAF
-            const olafDataToStore = {};
-            for (const day of olafReport.days || []) {
-              olafDataToStore[day.day_str] = {
-                alpha: day.alpha,
-                beta: day.beta
-              };
-            }
-            await window.ICN_STORAGE.set({ icn_olaf_data: olafDataToStore });
-            
-            // Rafraîchir les contours
-            if (enabled && window.ICN_OUTLINE) {
-              await window.ICN_OUTLINE.apply();
-            }
-            
-            // Rafraîchir les remplacements
-            if (enabled && window.ICN_REMPLA_DISPLAY) {
-              await window.ICN_REMPLA_DISPLAY.apply();
-            }
-            
-            window.ICN_DEBUG.log("[ICN] ✅ Auto-chargement OLAF réussi");
-          } else {
-            window.ICN_DEBUG.error("[ICN] ❌ Auto-chargement OLAF échoué:", olafReport.error);
-          }
-        } catch (err) {
-          window.ICN_DEBUG.error("[ICN] ❌ Erreur auto-chargement OLAF:", err);
-        }
-      }
-    }
-    
-    window.ICN_DEBUG.log("[ICN] Step 6: Installing observers...");
-    installObservers();
-    window.ICN_DEBUG.log("[ICN] ✅ Initialization complete!");
-    
-    } catch (error) {
-      window.ICN_DEBUG.error("[ICN] ❌ Initialization failed:", error);
-      window.ICN_DEBUG.error("[ICN] Error message:", error.message);
-      window.ICN_DEBUG.error("[ICN] Error stack:", error.stack);
-      throw error;
+      // Auto-load OLAF si activé (avant d'appliquer les contours)
+      const monthLabel = window.ICN_DOM.getMonthLabel();
+      await autoLoadOlaf(monthLabel);
+
+      // Appliquer les contours à l'arrivée
+      await applyAll();
+
+      installObservers();
+      window.ICN_DEBUG.log('[ICN] ✅ Init complete');
+    } catch (err) {
+      window.ICN_DEBUG.error('[ICN] ❌ Init failed:', err.message, err.stack);
     }
   }
 
-  // Détecter changements de page
+  // ── Détection changement d'URL ────────────────────────────────────────────
+
   let lastUrl = location.href;
   new MutationObserver(() => {
     const url = location.href;
-    if (url !== lastUrl) {
-      lastUrl = url;
-      window.ICN_DEBUG.log("[ICN] Page changed, reloading...");
-      
-      setTimeout(async () => {
-        // Recharger les settings du panel
-        if (window.ICN_PANEL_UI && window.ICN_PANEL_UI.panel) {
-          await window.ICN_PANEL_UI.loadSettings();
-        }
-
-        const enabled = await getEnabled();
-        if (enabled && window.ICN_OUTLINE) {
-          await window.ICN_OUTLINE.apply();
-        }
-
-        // Auto-chargement OLAF si activé
-        const settings = await window.ICN_STORAGE.get(['icn_olaf_autoload', 'olaf_login', 'olaf_pass', 'icn_olaf_cible']);
-        window.ICN_DEBUG.log("[ICN] Settings auto-load:", {
-          autoload: settings.icn_olaf_autoload,
-          hasLogin: !!settings.olaf_login,
-          hasPass: !!settings.olaf_pass,
-          hasCible: !!settings.icn_olaf_cible
-        });
-        
-        if (settings.icn_olaf_autoload && settings.olaf_login && settings.olaf_pass) {
-          window.ICN_DEBUG.log("[ICN] Auto-chargement OLAF...");
-          
-          const monthLabel = window.ICN_DOM.getMonthLabel();
-          const parser = new CielParser();
-          const parsed = parser.parseMonthLabel(monthLabel);
-          
-          if (parsed) {
-            const { year, month } = parsed;
-            
-            try {
-              const olafReport = await window.ICN_OLAF.buildReport({
-                login: settings.olaf_login,
-                pass: settings.olaf_pass,
-                year,
-                month,
-                cible: settings.icn_olaf_cible
-              });
-
-              if (olafReport.ok) {
-                // Stocker les données OLAF
-                const olafDataToStore = {};
-                for (const day of olafReport.days || []) {
-                  olafDataToStore[day.day_str] = {
-                    alpha: day.alpha,
-                    beta: day.beta
-                  };
-                }
-                await window.ICN_STORAGE.set({ icn_olaf_data: olafDataToStore });
-                
-                // Rafraîchir les contours
-                if (enabled && window.ICN_OUTLINE) {
-                  await window.ICN_OUTLINE.apply();
-                }
-                
-                window.ICN_DEBUG.log("[ICN] ✅ Auto-chargement OLAF réussi");
-              } else {
-                window.ICN_DEBUG.error("[ICN] ❌ Auto-chargement OLAF échoué:", olafReport.error);
-              }
-            } catch (err) {
-              window.ICN_DEBUG.error("[ICN] ❌ Erreur auto-chargement OLAF:", err);
-            }
-          }
-        }
-      }, 500);
-    }
+    if (url === lastUrl) return;
+    lastUrl = url;
+    window.ICN_DEBUG.log('[ICN] URL changée, réinitialisation...');
+    setTimeout(async () => {
+      if (window.ICN_PANEL_UI?.panel) await window.ICN_PANEL_UI.loadSettings();
+      const monthLabel = window.ICN_DOM.getMonthLabel();
+      await autoLoadOlaf(monthLabel);
+      await applyAll();
+    }, 500);
   }).observe(document, { subtree: true, childList: true });
 
-  // Export pour totals
+  // ── Exports ───────────────────────────────────────────────────────────────
+
   window.ICN_MAIN = {
     disconnectObserver,
-    reconnectObserver
+    reconnectObserver,
+    applyAll   // exposé pour PanelHandlers (bouton + ajout classe)
   };
 
-  // Lancer l'init
   await init();
 })();
