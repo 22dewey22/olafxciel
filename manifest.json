@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "OLAF x CIEL",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Compare automatiquement les plannings CIEL et OLAF avec coloration visuelle des différences.",
 
   "author": "Dewey",
@@ -70,9 +70,12 @@
         "content/services/RemplacementDisplay.js",
         "content/services/OutlineManager.js",
         "content/services/TotalsManager.js",
+        "content/services/CycleClient.js",
+        "content/services/CongesClient.js",
         
         "content/ui/PanelUI.js",
         "content/ui/PanelHandlers.js",
+        "content/ui/CongesUI.js",
         
         "content/core/main.js"
       ],

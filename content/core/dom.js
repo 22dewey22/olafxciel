@@ -80,6 +80,20 @@
     return map;
   }
 
+  // Retourne le TD de la ligne cycles correspondant au ts donné,
+  // par alignement positionnel (robuste quelle que soit la config CIEL)
+  function getCycleCellForTs(ts) {
+    const table = getCielTable();
+    if (!table) return null;
+    const order = getTsOrderAndLabels().map(x => x.ts);
+    const idx = order.indexOf(String(ts));
+    if (idx === -1) return null;
+    const cyclesRow = _findCyclesRow(table);
+    if (!cyclesRow) return null;
+    const dayTds = Array.from(cyclesRow.querySelectorAll("td")).slice(2);
+    return dayTds[idx] || null;
+  }
+
   // Lignes agents (tbody)
   function getAgentRows() {
     const table = getCielTable();
@@ -112,6 +126,7 @@
     getMonthLabel,
     getTsOrderAndLabels,
     getTsToCycleMap,
+    getCycleCellForTs,
     getAgentRows,
     getAgentIdFromRow,
     getAgentNameFromRow,

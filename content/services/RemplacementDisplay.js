@@ -330,7 +330,7 @@ class RemplacementDisplay {
    */
   addAsteriskAboveColumn(table, ts, run, year, month, remplasByDate) {
     // La ligne cycles a data-ts directement sur la td (pas la ligne dates)
-    const cycleCell = table.querySelector(`thead td[data-ts="${ts}"]`);
+    const cycleCell = window.ICN_DOM.getCycleCellForTs(ts);
     if (!cycleCell) {
       window.ICN_DEBUG.warn(`[REMPLA-DISPLAY] Cellule cycles introuvable pour ts=${ts}`);
       return;
@@ -387,7 +387,7 @@ class RemplacementDisplay {
     }
 
     // Cellule cycles du jour précédent
-    const cycleCell = table.querySelector(`thead td[data-ts="${previousTs}"]`);
+    const cycleCell = window.ICN_DOM.getCycleCellForTs(previousTs);
     if (!cycleCell) return;
 
     const daysForTooltip = run.map(day => year * 10000 + month * 100 + day);
