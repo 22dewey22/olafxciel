@@ -146,6 +146,18 @@ class PanelHandlers {
       radio.addEventListener('change', (e) => this.handleLearningModeChange(e));
     });
 
+    // Bouton "Nouveau congé"
+    const cgOpenBtn = panel.querySelector('#icn-cg-open-btn');
+    if (cgOpenBtn) {
+      cgOpenBtn.addEventListener('click', () => {
+        const container = panel.querySelector('#icn-cg-container');
+        if (container && window.ICN_CONGES_UI) {
+          window.ICN_CONGES_UI.toggle(container);
+          cgOpenBtn.textContent = window.ICN_CONGES_UI._open ? '✕ Fermer' : '+ Nouveau congé';
+        }
+      });
+    }
+
     // Cycle configuration
     await this.initCycleConfig();
 
