@@ -7,6 +7,9 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-03-18
+- **Modif local storage** : Retrait de la plupart des trucs, pour éviter que cela casse si le storage ne marche pas (à tester chez D.G.)
+
 ## [0.3.0] - 2026-03-18
 
 ### Fixed
