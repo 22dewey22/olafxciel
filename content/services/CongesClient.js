@@ -46,8 +46,12 @@
       if (!r.ok) return { ok: false, error: `HTTP ${r.status}` };
       const data = await r.json();
       const affectations = data?.datafortemplate?.affectation || [];
+      const today = new Date().toISOString().split('T')[0];
       const types = new Map();
       for (const aff of affectations) {
+        const debut = aff.dateDebut || '';
+        const fin   = aff.dateFin   || '9999-12-31';
+        if (today < debut || today > fin) continue;
         for (const lc of (aff.liconge || [])) {
           if (!lc) continue;
           for (const tc of (lc.typeConge || [])) {

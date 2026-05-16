@@ -1,154 +1,179 @@
-# OLAF x CIEL Comparator
+# OLAFxCIEL
 
-Extension Firefox pour comparer automatiquement les plannings CIEL et OLAF avec coloration visuelle des différences.
+Extension Firefox (Manifest V3) qui intègre les données de planning OLAF directement dans l'interface CIEL, sur `icnagenda.fr/ciel/`.
 
-## 🎯 Fonctionnalités
+**Version 0.4.0** — Compatible Firefox 109+
 
-### ✅ Comparaison automatique CIEL ↔ OLAF
-- Connexion à OLAF avec vos identifiants
-- Comparaison automatique des congés alpha et beta
-- Détection des différences entre les deux systèmes
+---
 
-### 🎨 Coloration visuelle intelligente
+## Fonctionnalités
 
-**Pour les congés ALPHA :**
-- 🟢 **Vert** : Congé présent dans OLAF (conforme)
-- 🟡 **Jaune** : Présent dans OLAF mais absent de CIEL
-- 🔴 **Rouge** : Présent dans CIEL mais absent d'OLAF
-- 🟣 **Violet** : Type inversé (marqué beta dans OLAF)
+### Comparaison CIEL ↔ OLAF
 
-**Pour les congés BETA :**
-- 🟢 **Vert clair** : Congé présent dans OLAF (conforme)
-- 🔵 **Bleu** : Présent dans OLAF mais absent de CIEL
-- 🔴 **Rouge** : Présent dans CIEL mais absent d'OLAF
-- 🟣 **Violet** : Type inversé (marqué alpha dans OLAF)
+L'extension récupère les données OLAF avec vos identifiants et colorie les cellules du planning CIEL en fonction de leur cohérence :
 
-### 📊 Compteurs automatiques
-- Ligne de total ALPHA en bas du tableau
-- Ligne de total BETA en bas du tableau
-- Calcul automatique par jour travaillé
+**Cellules ALPHA (congé côté CIEL) :**
+| Couleur | Signification |
+|---|---|
+| 🟢 Vert foncé | Validé dans OLAF (statut accordé) |
+| 🟡 Orange | En attente dans OLAF (statut envoyé) |
+| 🔴 Rouge | Absent d'OLAF |
+| 🟣 Violet | Inversion de type (marqué BETA dans OLAF) |
 
-### ⚙️ Configuration personnalisable, onglet Settings bleu sur la gauche
-- **Cycle de travail** : Définissez votre premier jour du cycle (J1), la longueur du cycle (6 ou 12 jours), et quels jours sont travaillés
-- **Auto-chargement** : Chargement automatique d'OLAF au changement de mois
-- **Mémorisation** : Sauvegarde optionnelle des identifiants OLAF
-- **Réglage Alpha/Beta** : Ajoutez manuellement des classes alpha/beta en cliquant sur les cellules
+**Cellules BETA (remplacement côté CIEL) :**
+| Couleur | Signification |
+|---|---|
+| 🟢 Vert clair | Présent dans OLAF BETA |
+| 🔵 Bleu | Absent de CIEL mais présent dans OLAF |
+| 🔴 Rouge | Absent d'OLAF |
+| 🟣 Violet | Inversion de type (marqué ALPHA dans OLAF) |
 
-## 📥 Installation
+### Astérisques ★ sur les remplacements
 
-1. Téléchargez l'extension depuis [Mozilla Add-ons](#) *(lien à venir)*
-2. Cliquez sur "Ajouter à Firefox"
+Les jours de repos avec remplacement OLAF sont signalés par un astérisque ★ au-dessus de la colonne cycle correspondante. Un tooltip au survol affiche le détail.
+
+### Compteurs automatiques
+
+Lignes de totaux ALPHA et BETA ajoutées en bas du tableau, calculées par jour travaillé selon la configuration du cycle.
+
+### Envoi de congés depuis CIEL
+
+Nouveau module v0.4.0 : posez vos congés directement depuis le panneau, sans quitter CIEL. Les types disponibles sont chargés dynamiquement depuis OLAF selon votre profil et votre affectation courante.
+
+---
+
+## Installation
+
+### Depuis Mozilla Add-ons *(lien à venir)*
+
+1. Rendez-vous sur la page de l'extension
+2. Cliquez sur **Ajouter à Firefox**
 3. Acceptez les permissions demandées
 
 ### Installation manuelle (développeurs)
+
 ```bash
 git clone https://github.com/22dewey22/olafxciel.git
 ```
-Puis charger le dossier dans `about:debugging` → "Charger un module temporaire"
 
-## 🚀 Utilisation
+Dans Firefox : `about:debugging` → **Charger un module temporaire** → sélectionner `manifest.json`
 
-### 1. Première utilisation
+---
 
-1. Ouvrez https://www.icnagenda.fr/ciel/
-2. Un panneau apparaît à gauche avec l'extension
-3. Activez les contours avec le toggle "Actif/Inactif"
+## Utilisation
 
-### 2. Configurer votre cycle de travail
+### 1. Première ouverture
 
-Dans l'onglet **⚙️ Settings** :
-1. Sélectionnez la date de votre J1 (premier jour du cycle)
-2. Choisissez la longueur de votre cycle (6 ou 12 jours)
-3. Cochez les jours travaillés dans le cycle (ex: J1, J2, J3, J6, J7, J8)
-4. La configuration est sauvegardée automatiquement
+Ouvrez `https://www.icnagenda.fr/ciel/`. Un panneau apparaît sur la page. Activez les contours avec le toggle **Actif/Inactif**.
+
+### 2. Configurer le cycle de travail
+
+Dans l'onglet **⚙ Settings** :
+
+1. Renseignez la date de votre **J1** (premier jour du cycle)
+2. Choisissez la longueur du cycle (6 ou 12 jours)
+3. Cochez les jours travaillés (ex : J1, J2, J3, J6, J7, J8)
+4. La config est sauvegardée automatiquement
 
 ### 3. Charger les données OLAF
 
 1. Entrez vos identifiants OLAF dans le panneau
-2. Cochez "Mémoriser" si vous voulez sauvegarder le mot de passe
-3. Cliquez sur "Charger OLAF"
-4. Les contours se mettent à jour automatiquement
+2. Cochez **Mémoriser** pour sauvegarder le mot de passe (optionnel)
+3. Cliquez sur **Charger OLAF**
+4. Les contours se mettent à jour
 
-### 4. Mode apprentissage (optionnel)
+Activez **Auto-chargement** pour recharger automatiquement au changement de mois.
 
-Si certaines classes de congés ne sont pas détectées automatiquement :
+### 4. Poser un congé
 
-1. Ouvrez l'onglet **⚙️ Settings**
-2. Sélectionnez **Mode Alpha** ou **Mode Beta**
-3. Cliquez sur les cellules du planning à ajouter
-4. Les classes sont sauvegardées automatiquement
-5. Revenez en **Mode Normal** pour utiliser l'extension
+1. Cliquez sur **+ Nouveau congé** dans le panneau
+2. Sélectionnez le type de congé (chargé depuis votre profil OLAF)
+3. Choisissez les dates
+4. Cliquez sur **Envoyer**
 
-## 🔒 Permissions requises
+En cas de collision ou de décompte insuffisant, une popup de confirmation s'affiche avant de valider.
 
-L'extension demande les permissions suivantes :
+> Le module congés nécessite que vos identifiants soient renseignés dans le panneau. Il est indisponible pour les profils sans congés auto-posables (certains chefs, autres centres).
 
-- **`storage`** : Sauvegarde de vos préférences et configuration
-- **`tabs`, `activeTab`** : Détection du changement de mois dans CIEL
-- **`*://www.icnagenda.fr/*`** : Accès au planning CIEL
-- **`*://olafatco.dsna.aviation-civile.gouv.fr/*`** : Connexion à OLAF
+### 5. Mode apprentissage (optionnel)
 
-**⚠️ Vos identifiants ne sont jamais envoyés ailleurs que vers OLAF. Ils sont stockés localement dans votre navigateur.**
+Si certaines cellules ne sont pas détectées automatiquement :
 
-## ❓ FAQ
-
-### Les contours n'apparaissent pas
-- Vérifiez que le toggle "Actif" est bien activé
-- Rechargez la page CIEL
-- Vérifiez que vous êtes bien sur `www.icnagenda.fr/ciel/`
-
-### OLAF ne se charge pas
-- Vérifiez vos identifiants
-- Assurez-vous d'avoir une connexion internet
-- Vérifiez que vous n'avez pas de bloqueur de publicités qui empêche les requêtes
-
-### Les jours ne correspondent pas
-- Vérifiez votre configuration de cycle dans l'onglet "Apprentissage"
-- Assurez-vous que la date J1 et les jours travaillés sont corrects
-
-### Un congé n'est pas détecté
-- Utilisez le mode apprentissage pour ajouter manuellement la classe
-- Mode Alpha/Beta → Cliquez sur la cellule → Mode Normal
-
-## 🐛 Signaler un bug
-
-Vous avez trouvé un bug ? Plusieurs options :
-
-1. **GitHub Issues** : https://github.com/22dewey22/olafxciel/issues
-2. **Commentaire sur Mozilla Add-ons** : Laissez un avis détaillé
-3. **Email** : *(à ajouter si souhaité)*
-
-Merci d'inclure :
-- Version de Firefox
-- Version de l'extension
-- Description détaillée du problème
-- Capture d'écran si possible
-
-## 📝 Changelog
-
-### v0.1.0 (2026-02-23)
-- ✨ Système de cycle configurable (date J1 + longueur + jours travaillés)
-- ✨ Coloration différenciée pour beta valide (vert clair)
-- ✨ Détection des congés présents dans OLAF mais absents de CIEL
-- ✨ Type mismatch en violet (alpha ↔ beta inversé)
-- ✨ Toggle pour afficher/masquer le mot de passe
-- ✨ Exclusion mutuelle alpha/beta automatique
-- 🐛 Corrections des totaux pour utiliser la config du cycle
-- 🐛 Fallback localStorage pour réseaux d'entreprise restrictifs
-- Ajout du mode apprentissage alpha/beta
-- Totaux par jour en bas du tableau
-- Auto-chargement OLAF au changement de mois
-- Comparaison CIEL ↔ OLAF
-- Coloration des différences
-- Détection et coloration des congés alpha/beta dans CIEL
-
-## 📄 Licence
-
-MIT License - Voir le fichier LICENSE pour plus de détails.
-
-## 🙏 Remerciements
-
-Merci à tous les utilisateurs qui contribuent à améliorer cette extension par leurs retours !
+1. Dans **⚙ Settings**, sélectionnez **Mode Alpha** ou **Mode Beta**
+2. Cliquez sur les cellules à ajouter
+3. Repassez en **Mode Normal**
 
 ---
 
+## Permissions
+
+| Permission | Usage |
+|---|---|
+| `storage` | Sauvegarde des préférences (identifiants, config cycle, position du panneau) |
+| `tabs`, `activeTab` | Détection du changement de mois dans CIEL |
+| `*://www.icnagenda.fr/*` | Accès au planning CIEL |
+| `*://olafatco.dsna.aviation-civile.gouv.fr/*` | Connexion à OLAF |
+
+**Vos identifiants ne sont jamais envoyés ailleurs que vers OLAF. Aucune donnée ne quitte votre navigateur.**
+
+---
+
+## FAQ
+
+**Les contours n'apparaissent pas**
+Vérifiez que le toggle est sur **Actif**. Rechargez la page CIEL. Assurez-vous d'être sur `www.icnagenda.fr/ciel/`.
+
+**OLAF ne se charge pas**
+Vérifiez vos identifiants. Assurez-vous de ne pas avoir de bloqueur de requêtes actif sur le domaine OLAF.
+
+**Le module congés affiche "non disponible"**
+Votre profil ne comporte pas de congés auto-posables sur l'affectation courante (chef d'équipe, autre centre, stagiaire en phase TPA…). Utilisez directement l'interface OLAF dans ce cas.
+
+**Un congé n'est pas détecté en ALPHA/BETA**
+Utilisez le mode apprentissage pour ajouter manuellement la classe correspondante.
+
+---
+
+## Signaler un bug
+
+- **GitHub Issues** : https://github.com/22dewey22/olafxciel/issues
+- **Mozilla Add-ons** : Laissez un avis avec description détaillée
+
+Merci d'inclure : version Firefox, version extension, description du problème, capture d'écran si possible.
+
+---
+
+## Changelog
+
+### v0.4.0
+- ✨ Module d'envoi de congés depuis CIEL (types chargés dynamiquement, gestion collisions/décompte)
+- ✨ Récupération de l'ID agent via `pageData.php` (plus de comparaison de noms)
+- ✨ Position et état du panneau sauvegardés entre sessions
+- ♻️ Données OLAF en mémoire (plus de cache storage entre sessions)
+- ♻️ Cache agents en mémoire uniquement
+- 🐛 Fix `addAsteriskAboveColumn` : alignement positionnel des cellules cycles (robuste quelle que soit la config CIEL)
+
+### v0.3.0
+- ✨ Astérisques ★ sur les jours de repos avec remplacement OLAF
+- ✨ Tooltip détail au survol des astérisques
+- ✨ Dropdown menus CIEL-style pour les settings
+- 🐛 Fix URL CIEL (`/ciel/ciel.php?mois=&annee=`)
+
+### v0.2.0
+- ✨ Statuts alpha : vert validé / orange en attente / rouge absent
+- ✨ Badge pastille colorée dans le coin des cellules
+- ✨ Détection agents absents de CIEL mais présents dans OLAF
+- ✨ Cache agents avec fetch profil incrémental
+
+### v0.1.0
+- ✨ Comparaison CIEL ↔ OLAF avec coloration alpha/beta
+- ✨ Cycle de travail configurable (J1, longueur, jours travaillés)
+- ✨ Mode apprentissage alpha/beta par clic
+- ✨ Totaux par jour en bas du tableau
+- ✨ Auto-chargement OLAF au changement de mois
+
+---
+
+## Licence
+
+MIT — voir fichier `LICENSE`.

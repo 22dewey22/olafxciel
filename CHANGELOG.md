@@ -6,8 +6,10 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ## [Unreleased]
+## [0.4.0] - 2026-05-16
+- **Ajout du module d'envoi de congé** : Module à priori fonctionnel, va falloir tester
 
-## [0.3.2] - 2026-03-18
+## [0.3.2] - 2026-05-16
 - **Modif local storage** : Retrait de la plupart des trucs, pour éviter que cela casse si le storage ne marche pas (à tester chez D.G.)
 
 ## [0.3.0] - 2026-03-18
