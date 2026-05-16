@@ -163,8 +163,8 @@ class PanelUI {
   }
 
   getCredentials() {
-    const loginInput = this.panel.querySelector('#olaf-login');
-    const passInput = this.panel.querySelector('#olaf-pass');
+    const loginInput = this.panel.querySelector('#icn-olaf-login');
+    const passInput = this.panel.querySelector('#icn-olaf-pass');
     const rememberCheckbox = this.panel.querySelector('#olaf-remember');
 
     return {

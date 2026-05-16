@@ -1,163 +1,128 @@
-/**
- * CongesClient — Gestion des congés OLAF
- *
- * Endpoints :
- *   GET  /dist/ajax/conges/agentCongesCharger.php   chargement de la page congés
- *   POST /dist/ajax/conges/leaveScheduleUpsert.php  validation des dates planning
- *   POST /dist/ajax/conges/leaveUpsert.php          création / confirmation du congé
- */
-class CongesClient {
-  constructor() {
-    this._BASE = 'https://olafatco.dsna.aviation-civile.gouv.fr/dist/ajax/conges';
+(function () {
+  const BASE = 'https://olafatco.dsna.aviation-civile.gouv.fr';
+  const EXCLUDED_TYPES = new Set(['RPL', 'PER']);
+
+  function _auth(login, pass) {
+    return 'Basic ' + btoa(`${login}:${pass}`);
   }
 
-  // ── GET ──────────────────────────────────────────────────────────────────
+  // ── Agent ID ───────────────────────────────────────────────────────────────
 
-  /**
-   * Charge les données congés de l'agent.
-   * Sans agentId → OLAF utilise la session (comme getCycle.php).
-   * La réponse contient data.id = l'idpersonnels qu'on stocke ensuite.
-   */
-  async loadCongesData(agentId) {
-    const params = new URLSearchParams({ type: 'json' });
-    if (agentId) params.set('id', agentId);
-
-    const resp = await fetch(`${this._BASE}/agentCongesCharger.php?${params}`, {
-      credentials: 'include'
-    });
-    if (!resp.ok) throw new Error(`agentCongesCharger HTTP ${resp.status}`);
-    return await resp.json();
-  }
-
-  // ── POST ─────────────────────────────────────────────────────────────────
-
-  async scheduleCheck(congeType, dateDebut, dateFin) {
-    const body = new URLSearchParams({
-      'conge-type':  congeType,
-      'conge-debut': dateDebut,
-      'conge-fin':   dateFin
-    });
-    const resp = await fetch(`${this._BASE}/leaveScheduleUpsert.php`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body
-    });
-    if (!resp.ok) throw new Error(`leaveScheduleUpsert HTTP ${resp.status}`);
-    return await resp.json();
-  }
-
-  async upsertLeave(payload) {
-    const body = new URLSearchParams();
-    for (const [k, v] of Object.entries(payload)) {
-      body.set(k, v === null || v === undefined ? '' : String(v));
+  async function fetchAgentId(login, pass) {
+    try {
+      const r = await fetch(`${BASE}/dist/ajax/index/pageData.php`, {
+        method: 'POST',
+        headers: {
+          'Authorization': _auth(login, pass),
+          'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: 'search=&isCape=false'
+      });
+      if (!r.ok) return { ok: false, error: `HTTP ${r.status}` };
+      const data = await r.json();
+      const id = data?.session?.id;
+      if (!id) return { ok: false, error: 'ID agent introuvable dans la session' };
+      return { ok: true, agentId: id };
+    } catch (e) {
+      return { ok: false, error: e.message };
     }
-    const resp = await fetch(`${this._BASE}/leaveUpsert.php`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body
-    });
-    if (!resp.ok) throw new Error(`leaveUpsert HTTP ${resp.status}`);
-    return await resp.json();
   }
 
-  // ── Helpers payload ───────────────────────────────────────────────────────
+  // ── Types de congés ────────────────────────────────────────────────────────
 
-  buildPayload(p, passCheckTeamCollision = false) {
-    return {
-      idagent:                 p.idagent,
-      idAffectation:           p.idAffectation,
-      idagentsubstitute:       false,
-      idleavestatus:           17,            // ENVOYER
-      recurrentid:             'null',
-      idactivitytype:          '',
-      idactivity:              '',
-      nb_recup:                '',
-      dateLeave:               '',
-      content:                 '',
-      idActivityAgentList:     '',
-      'conge-type':            p.congeType,
-      'conge-debut':           p.dateDebut,  // dd/mm/yyyy
-      'conge-fin':             p.dateFin,    // dd/mm/yyyy
-      date:                    '',
-      justification:           p.justification || '',
-      date_debut:              '',
-      date_fin:                '',
-      ishalfdaybegin:          false,
-      ishalfdayend:            false,
-      passCheckLeaveValidity:  true,
-      passCheckSelfCollision:  true,
-      passCheckTeamCollision,
-      passCountProposal:       false,
-      RPL:                     ''
-    };
-  }
-
-  // ── Extraction depuis congesData ──────────────────────────────────────────
-
-  getCurrentAffectation(congesData) {
-    return congesData?.datafortemplate?.affectation?.find(a => a.current) || null;
-  }
-
-  getAvailableLeaveTypes(congesData) {
-    const aff = this.getCurrentAffectation(congesData);
-    if (!aff) return [];
-
-    const seen = new Set();
-    const types = [];
-    for (const cat of aff.liconge || []) {
-      for (const t of cat.typeConge || []) {
-        if (seen.has(t.type)) continue;
-        seen.add(t.type);
-        types.push({
-          id:                   t.type,
-          name:                 t.name,
-          sigle:                t.sigle,
-          category:             cat.nomCat,
-          enddate:              t.enddate,
-          justification:        t.justification,
-          requiredJustification:t.requiredJustification,
-          dureemin:             t.dureemin,
-          dureemax:             t.dureemax,
-          priornoticemin:       parseInt(t.priornoticemin) || 0,
-          replacement:          t.replacement
-        });
+  async function fetchLeaveTypes(login, pass, agentId) {
+    try {
+      const url = new URL(`${BASE}/dist/ajax/conges/agentCongesCharger.php`);
+      url.searchParams.set('id', agentId);
+      url.searchParams.set('type', 'json');
+      const r = await fetch(url, {
+        headers: {
+          'Authorization': _auth(login, pass),
+          'X-Requested-With': 'XMLHttpRequest',
+          'Accept': 'application/json, text/plain, */*',
+        }
+      });
+      if (!r.ok) return { ok: false, error: `HTTP ${r.status}` };
+      const data = await r.json();
+      const affectations = data?.datafortemplate?.affectation || [];
+      const types = new Map();
+      for (const aff of affectations) {
+        for (const lc of (aff.liconge || [])) {
+          if (!lc) continue;
+          for (const tc of (lc.typeConge || [])) {
+            if (!tc || tc.type == null) continue;
+            if (EXCLUDED_TYPES.has(tc.detail?.type || '')) continue;
+            types.set(tc.type, { id: tc.type, sigle: tc.sigle || '?', label: tc.name || '?' });
+          }
+        }
       }
+      const list = [...types.values()].sort((a, b) => a.id - b.id);
+      return { ok: true, types: list };
+    } catch (e) {
+      return { ok: false, error: e.message };
     }
-    return types;
   }
 
-  getProvisions(congesData) {
-    return congesData?.provisions || [];
-  }
+  // ── Envoi congé ────────────────────────────────────────────────────────────
 
-  /**
-   * Retourne une map { "YYYY-MM-DD": [{sigle, statut, theme}] }
-   * pour tous les congés de l'affectation courante.
-   */
-  getLeaveMap(congesData) {
-    const map = {};
-    const aff = this.getCurrentAffectation(congesData);
-    if (!aff?.conge) return map;
+  async function submitLeave(login, pass, { agentId, congeType, debut, fin, passFlags = {} }) {
+    const fields = [
+      ['idagent',                agentId],
+      ['conge-debut',            debut],
+      ['conge-fin',              fin],
+      ['formType',               'false'],
+      ['idagentsubstitute',      ''],
+      ['idleavestatus',          '17'],
+      ['passCheckLeaveValidity', String(passFlags.passCheckLeaveValidity ?? false)],
+      ['passCheckSelfCollision', String(passFlags.passCheckSelfCollision ?? false)],
+      ['passCheckTeamCollision', String(passFlags.passCheckTeamCollision ?? false)],
+      ['recurrentid',            'null'],
+      ['passCountProposal',      String(passFlags.passCountProposal ?? false)],
+      ['conge-type',             congeType],
+      ['ishalfdaybegin',         'false'],
+      ['ishalfdayend',           'false'],
+      ['justification',          ''],
+    ];
 
-    for (const c of aff.conge) {
-      const start = new Date(c.datestart);
-      const end   = c.dateend ? new Date(c.dateend) : new Date(c.datestart);
-      let d = new Date(start);
-      while (d <= end) {
-        const key = d.toISOString().split('T')[0];
-        if (!map[key]) map[key] = [];
-        map[key].push({
-          sigle:  c.leavetypesigle,
-          statut: c.idleavestatus,
-          theme:  c.leavestatustheme
-        });
-        d.setDate(d.getDate() + 1);
+    const boundary = '----OLAFxCIELboundary';
+    let body = '';
+    for (const [name, value] of fields) {
+      body += `--${boundary}\r\nContent-Disposition: form-data; name="${name}"\r\n\r\n${value}\r\n`;
+    }
+    body += `--${boundary}--\r\n`;
+
+    try {
+      const r = await fetch(`${BASE}/dist/ajax/conges/leaveUpsert.php`, {
+        method: 'POST',
+        headers: {
+          'Authorization': _auth(login, pass),
+          'Content-Type': `multipart/form-data; boundary=${boundary}`,
+          'X-Requested-With': 'XMLHttpRequest',
+          'Accept': 'application/json, text/plain, */*',
+        },
+        body
+      });
+      if (!r.ok) return { ok: false, http: r.status };
+      const data = await r.json();
+
+      if (!data.error && !data.countCheck && data.id) {
+        return { ok: true, id: data.id };
       }
+      if (data.error && data.button) {
+        return { ok: false, collision: true, popup: data.popup, inputs: data.inputs };
+      }
+      if (data.countCheck) {
+        return { ok: false, decompte: true, popup: data.popup, inputs: data.inputs };
+      }
+      if (data.error) {
+        return { ok: false, hard: true, popup: data.popup };
+      }
+      return { ok: false, hard: true, popup: { header: 'Erreur inconnue' } };
+    } catch (e) {
+      return { ok: false, hard: true, popup: { header: e.message } };
     }
-    return map;
   }
-}
 
-window.ICN_CONGES = new CongesClient();
+  window.ICN_CONGES_CLIENT = { fetchAgentId, fetchLeaveTypes, submitLeave };
+})();
