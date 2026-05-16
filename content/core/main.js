@@ -39,11 +39,11 @@
         window.ICN_DEBUG.error('[ICN] Auto-load OLAF échoué:', olafReport.error);
         return false;
       }
-      const olafDataToStore = {};
+      const olafData = {};
       for (const day of olafReport.days || []) {
-        olafDataToStore[day.day_str] = { alpha: day.alpha, beta: day.beta };
+        olafData[day.day_str] = { alpha: day.alpha, beta: day.beta };
       }
-      await window.ICN_STORAGE.set({ icn_olaf_data: olafDataToStore });
+      window.ICN_OUTLINE.setOlafData(olafData);
       window.ICN_DEBUG.log('[ICN] ✅ Auto-load OLAF réussi');
       return true;
     } catch (err) {
@@ -70,7 +70,6 @@
     let lastMonthLabel = window.ICN_DOM.getMonthLabel();
 
     tableObserver = new MutationObserver(async (mutations) => {
-      // Ignorer les mutations issues de nos propres éléments
       const isOnlyOurs = mutations.every(m =>
         [...m.addedNodes, ...m.removedNodes].every(n =>
           n.nodeType === 1 && n.hasAttribute && n.hasAttribute('data-icn-ignore')
@@ -79,15 +78,13 @@
       if (isOnlyOurs) return;
 
       const currentMonthLabel = window.ICN_DOM.getMonthLabel();
-      if (currentMonthLabel === lastMonthLabel) return; // Pas de changement de mois → rien à faire
+      if (currentMonthLabel === lastMonthLabel) return;
 
       window.ICN_DEBUG.log('[ICN] Mois changé:', lastMonthLabel, '→', currentMonthLabel);
       lastMonthLabel = currentMonthLabel;
 
-      // Recharger les settings du panel
       if (window.ICN_PANEL_UI?.panel) await window.ICN_PANEL_UI.loadSettings();
 
-      // Auto-load OLAF si activé puis appliquer les contours
       await autoLoadOlaf(currentMonthLabel);
       await applyAll();
     });
@@ -137,11 +134,8 @@
       const handlers = new window.ICN_PANEL_HANDLERS(window.ICN_PANEL_UI);
       await handlers.attach();
 
-      // Auto-load OLAF si activé (avant d'appliquer les contours)
       const monthLabel = window.ICN_DOM.getMonthLabel();
       await autoLoadOlaf(monthLabel);
-
-      // Appliquer les contours à l'arrivée
       await applyAll();
 
       installObservers();
@@ -172,7 +166,7 @@
   window.ICN_MAIN = {
     disconnectObserver,
     reconnectObserver,
-    applyAll   // exposé pour PanelHandlers (bouton + ajout classe)
+    applyAll
   };
 
   await init();

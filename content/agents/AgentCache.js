@@ -1,39 +1,15 @@
 /**
- * Cache des profils agents avec fetch incrémental
+ * Cache des profils agents — mémoire uniquement (session courante)
  */
 class AgentCache {
   constructor() {
-    this.CACHE_KEY = 'icn_agents_cache';
-    this.CACHE_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 jours
+    this.CACHE_DURATION = 7 * 24 * 60 * 60 * 1000;
+    this._cache = {};
+    this._timestamp = null;
   }
 
-  async getCache() {
-    try {
-      const result = await window.ICN_STORAGE.get(this.CACHE_KEY);
-      if (result[this.CACHE_KEY]) {
-        const { agents, timestamp } = result[this.CACHE_KEY];
-        if (Date.now() - timestamp < this.CACHE_DURATION) {
-          return agents;
-        }
-      }
-      return {};
-    } catch (error) {
-      window.ICN_DEBUG.warn('[ICN-AGENTS] getCache failed:', error);
-      return {};
-    }
-  }
-
-  async saveCache(agentsMap) {
-    try {
-      await window.ICN_STORAGE.set({
-        [this.CACHE_KEY]: {
-          agents: agentsMap,
-          timestamp: Date.now()
-        }
-      });
-    } catch (error) {
-      window.ICN_DEBUG.warn('[ICN-AGENTS] saveCache failed:', error);
-    }
+  _isCacheValid() {
+    return this._timestamp && (Date.now() - this._timestamp < this.CACHE_DURATION);
   }
 
   async fetchProfile(agentId) {
@@ -41,22 +17,22 @@ class AgentCache {
     try {
       const response = await fetch(url);
       if (!response.ok) return null;
-      
+
       const html = await response.text();
       const parser = new DOMParser();
       const doc = parser.parseFromString(html, 'text/html');
-      
+
       const h1 = doc.querySelector('h1');
       if (!h1) return null;
-      
+
       const fullName = h1.textContent.trim();
       if (!fullName) return null;
-      
+
       const parts = fullName.split(/\s+/);
       let firstNameParts = [];
       let lastNameParts = [];
       let foundLastName = false;
-      
+
       for (const part of parts) {
         if (part === part.toUpperCase() && part.length > 2) {
           foundLastName = true;
@@ -67,10 +43,10 @@ class AgentCache {
           firstNameParts.push(part);
         }
       }
-      
+
       const firstName = firstNameParts.join(' ');
       const lastName = lastNameParts.length > 0 ? lastNameParts.join(' ') : fullName;
-      
+
       return {
         id: agentId,
         firstName,
@@ -87,7 +63,7 @@ class AgentCache {
   detectPageAgents() {
     const agentIds = new Set();
     const rows = document.querySelectorAll('tbody tr.h2[id^="ligneeff"]');
-    
+
     for (const row of rows) {
       const match = row.id.match(/ligneeff(\d+)/);
       if (match) {
@@ -104,31 +80,29 @@ class AgentCache {
   async getAgentsList(forceRefresh = false) {
     const pageAgentIds = this.detectPageAgents();
     if (pageAgentIds.length === 0) return {};
-    
-    let cachedAgents = {};
-    if (!forceRefresh) {
-      cachedAgents = await this.getCache();
+
+    if (!forceRefresh && this._isCacheValid()) {
+      const missingIds = pageAgentIds.filter(id => !this._cache[id]);
+      if (missingIds.length === 0) return this._cache;
     }
-    
-    const missingIds = pageAgentIds.filter(id => !cachedAgents[id]);
-    if (missingIds.length === 0) return cachedAgents;
-    
-    const agentsMap = { ...cachedAgents };
-    
+
+    const missingIds = forceRefresh
+      ? pageAgentIds
+      : pageAgentIds.filter(id => !this._cache[id]);
+
     for (let i = 0; i < missingIds.length; i++) {
       const id = missingIds[i];
       const profile = await this.fetchProfile(id);
-      
+
       if (profile) {
-        agentsMap[id] = profile;
+        this._cache[id] = profile;
       } else {
-        // Fallback
         const row = document.querySelector(`tr[id="ligneeff${id}"]`);
         if (row) {
           const link = row.querySelector('td.eff a.eff');
           if (link) {
             const displayName = link.textContent.trim();
-            agentsMap[id] = {
+            this._cache[id] = {
               id,
               firstName: '',
               lastName: displayName,
@@ -138,18 +112,19 @@ class AgentCache {
           }
         }
       }
-      
+
       if (i < missingIds.length - 1) {
         await new Promise(resolve => setTimeout(resolve, 200));
       }
     }
-    
-    await this.saveCache(agentsMap);
-    return agentsMap;
+
+    this._timestamp = Date.now();
+    return this._cache;
   }
 
   async refreshAll() {
-    await window.ICN_STORAGE.remove(this.CACHE_KEY);
+    this._cache = {};
+    this._timestamp = null;
     return await this.getAgentsList(true);
   }
 }

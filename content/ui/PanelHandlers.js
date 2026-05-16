@@ -19,6 +19,7 @@ class PanelHandlers {
       settingsTab.addEventListener('click', () => {
         const isOpening = !settingsPanel.classList.contains('open');
         settingsPanel.classList.toggle('open');
+        window.ICN_STORAGE.set({ icn_panel_state: { minimized: false, settingsOpen: isOpening } });
         
         // Si on ferme le panneau, désactiver le mode apprentissage
         if (!isOpening && this.learningMode !== 'normal') {
@@ -38,10 +39,12 @@ class PanelHandlers {
     const collapsePanel = () => {
       panel.classList.add('minimized');
       if (settingsPanel) settingsPanel.classList.remove('open');
+      window.ICN_STORAGE.set({ icn_panel_state: { minimized: true, settingsOpen: false } });
     };
 
     const expandPanel = () => {
       panel.classList.remove('minimized');
+      window.ICN_STORAGE.set({ icn_panel_state: { minimized: false, settingsOpen: false } });
     };
 
     if (minimizeBtn) {
@@ -222,12 +225,12 @@ class PanelHandlers {
         return;
       }
 
-      // Stocker les données OLAF
-      const olafDataToStore = {};
+      // Stocker les données OLAF en mémoire
+      const olafData = {};
       for (const day of olafReport.days || []) {
-        olafDataToStore[day.day_str] = { alpha: day.alpha, beta: day.beta };
+        olafData[day.day_str] = { alpha: day.alpha, beta: day.beta };
       }
-      await window.ICN_STORAGE.set({ icn_olaf_data: olafDataToStore });
+      window.ICN_OUTLINE.setOlafData(olafData);
 
       // Rafraîchir les contours via ICN_MAIN
       await window.ICN_MAIN.applyAll();

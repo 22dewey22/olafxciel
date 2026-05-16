@@ -81,6 +81,8 @@ class PanelUI {
       if (isDragging) {
         isDragging = false;
         this.panel.style.transition = '';
+        const rect = this.panel.getBoundingClientRect();
+        window.ICN_STORAGE.set({ icn_panel_position: { x: rect.left, y: rect.top } });
       }
     });
   }
@@ -92,7 +94,8 @@ class PanelUI {
       'olaf_pass',
       'olaf_remember',
       'icn_olaf_autoload',
-      'icn_diff_report'
+      'icn_panel_position',
+      'icn_panel_state'
     ]);
 
     // Toggle contours
@@ -122,10 +125,22 @@ class PanelUI {
     const autoloadCheckbox = this.panel.querySelector('#icn-olaf-autoload');
     if (autoloadCheckbox) autoloadCheckbox.checked = Boolean(result.icn_olaf_autoload);
 
-    // Diff report
-    const diffReport = this.panel.querySelector('#diff-report');
-    if (diffReport && result.icn_diff_report) {
-      diffReport.textContent = result.icn_diff_report;
+    // Position du panel
+    const pos = result.icn_panel_position;
+    if (pos) {
+      this.panel.style.left = pos.x + 'px';
+      this.panel.style.top  = pos.y + 'px';
+      this.panel.style.right = 'auto';
+    }
+
+    // État (réduit ou non)
+    const state = result.icn_panel_state;
+    if (state?.minimized) {
+      this.panel.classList.add('minimized');
+    }
+    if (state?.settingsOpen) {
+      const settingsPanel = this.panel.querySelector('#icn-settings-panel');
+      if (settingsPanel) settingsPanel.classList.add('open');
     }
   }
 
@@ -145,13 +160,6 @@ class PanelUI {
     setTimeout(() => {
       statusEl.classList.add('hidden');
     }, 3000);
-  }
-
-  updateDiffReport(text) {
-    const diffReport = this.panel.querySelector('#diff-report');
-    if (diffReport) {
-      diffReport.textContent = text;
-    }
   }
 
   getCredentials() {

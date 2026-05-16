@@ -2,6 +2,18 @@
  * Gestion des contours colorés
  */
 class OutlineManager {
+  constructor() {
+    this._olafData = null;
+  }
+
+  setOlafData(data) {
+    this._olafData = data || null;
+  }
+
+  async refresh() {
+    await this.apply();
+  }
+
   /**
    * Crée une pastille colorée dans le coin d'une cellule
    */
@@ -47,13 +59,8 @@ class OutlineManager {
     });
   }
 
-  async getOlafData() {
-    try {
-      const result = await window.ICN_STORAGE.get("icn_olaf_data");
-      return result.icn_olaf_data || null;
-    } catch (e) {
-      return null;
-    }
+  getOlafData() {
+    return this._olafData;
   }
 
   async apply() {
@@ -70,7 +77,7 @@ class OutlineManager {
       agentsList = await window.ICN_AGENTS.getAgentsList();
     }
 
-    const olafDataRaw = await this.getOlafData();
+    const olafDataRaw = this.getOlafData();
     const olafData = new Map();
     
     if (olafDataRaw) {

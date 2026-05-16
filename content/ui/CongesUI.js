@@ -36,20 +36,11 @@ class CongesUI {
     this._open = true;
 
     try {
-      // Agent ID depuis le storage ou découverte via session
-      const stored = await window.ICN_STORAGE.get('icn_olaf_agent_id');
-      let agentId = stored.icn_olaf_agent_id || '';
-
       // Fetch en parallèle
       [this._cycleData, this._congesData] = await Promise.all([
         window.ICN_CYCLE.fetchCycleData(),
-        window.ICN_CONGES.loadCongesData(agentId)
+        window.ICN_CONGES.loadCongesData('')
       ]);
-
-      // Stocker l'id si découvert
-      if (this._congesData?.id && !agentId) {
-        await window.ICN_STORAGE.set({ icn_olaf_agent_id: this._congesData.id });
-      }
 
       this._leaveTypes = window.ICN_CONGES.getAvailableLeaveTypes(this._congesData);
       this._leaveMap   = window.ICN_CONGES.getLeaveMap(this._congesData);
@@ -405,8 +396,7 @@ class CongesUI {
       this._selEnd   = null;
 
       // Recharger les données pour mettre à jour les pastilles
-      const stored = await window.ICN_STORAGE.get('icn_olaf_agent_id');
-      this._congesData = await window.ICN_CONGES.loadCongesData(stored.icn_olaf_agent_id || '');
+      this._congesData = await window.ICN_CONGES.loadCongesData('');
       this._leaveMap   = window.ICN_CONGES.getLeaveMap(this._congesData);
       this._renderDays();
       this._updateDatesDisplay();
