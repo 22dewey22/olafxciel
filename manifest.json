@@ -51,7 +51,9 @@
         "*://www.icnagenda.fr/ciel/*/*",
         "*://icnagenda.fr/ciel/*/*",        
         "*://www.icnagenda.fr/ciel/ciel.php*",
-        "*://icnagenda.fr/ciel/ciel.php*"
+        "*://icnagenda.fr/ciel/ciel.php*",
+        "*://www.icnagenda.fr/ciel/uciel.php*",
+        "*://icnagenda.fr/ciel/uciel.php*"
             ],
       "js": [
         "shared/constants.js",
