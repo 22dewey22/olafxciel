@@ -1,241 +1,158 @@
 /**
- * Polyfill pour Chrome : chrome → browser
- * Chrome utilise 'chrome' au lieu de 'browser'
+ * Polyfill Chrome : `browser` → `chrome`
  */
 if (typeof browser === 'undefined') {
+  // eslint-disable-next-line no-var
   var browser = chrome;
 }
 
 /**
- * Système de debug global
- * IMPORTANT: Doit être défini EN PREMIER avant tout le reste
+ * Debug global — doit être défini en premier.
  */
 window.ICN_DEBUG = {
-  enabled: true, // Mettre à true pour activer les logs de debug
-  forceLocalStorage: false, // Mettre à true pour forcer localStorage (contourner browser.storage bloqué)
-  
-  log(...args) {
-    if (this.enabled) {
-      console.log(...args);
-    }
-  },
-  
-  warn(...args) {
-    if (this.enabled) {
-      console.warn(...args);
-    }
-  },
-  
-  error(...args) {
-    // Les erreurs sont toujours affichées
-    console.error(...args);
-  },
-  
-  info(...args) {
-    if (this.enabled) {
-      console.info(...args);
-    }
-  }
+  enabled: false,
+  log(...args)  { if (this.enabled) console.log(...args); },
+  warn(...args) { if (this.enabled) console.warn(...args); },
+  info(...args) { if (this.enabled) console.info(...args); },
+  error(...args) { console.error(...args); }
 };
 
 /**
- * Système de storage avec fallback automatique
- * Gère les cas où browser.storage est bloqué (réseau entreprise, etc.)
+ * Storage avec repli automatique : browser.storage → localStorage → mémoire.
  */
-(function() {
-  // Storage en mémoire comme dernier recours
+(function () {
   const memoryStorage = {};
-  
-  // Wrapper de storage avec fallback automatique
-  const StorageManager = {
+  const PREFIX = 'icn_';
+
+  window.ICN_STORAGE = {
     async get(keys) {
       const keyArray = Array.isArray(keys) ? keys : [keys];
-      
-      // Si forceLocalStorage activé, sauter browser.storage
-      if (!window.ICN_DEBUG.forceLocalStorage) {
-        // Tentative 1 : browser.storage
-        try {
-          const result = await browser.storage.local.get(keys);
-          window.ICN_DEBUG.log('[ICN-STORAGE] ✓ browser.storage.get:', keys, '→', result);
-          return result;
-        } catch (browserError) {
-          window.ICN_DEBUG.warn('[ICN-STORAGE] ⚠️ browser.storage failed:', browserError.message);
-        }
+      try {
+        return await browser.storage.local.get(keys);
+      } catch (e) {
+        window.ICN_DEBUG.warn('[ICN-STORAGE] browser.storage.get KO:', e.message);
       }
-      
-      // Tentative 2 : localStorage
       try {
         const result = {};
         for (const key of keyArray) {
-          const value = localStorage.getItem('icn_' + key);
-          if (value !== null) {
-            try {
-              result[key] = JSON.parse(value);
-            } catch (e) {
-              result[key] = value;
-            }
-          }
+          const v = localStorage.getItem(PREFIX + key);
+          if (v !== null) { try { result[key] = JSON.parse(v); } catch (e) { result[key] = v; } }
         }
-        window.ICN_DEBUG.log('[ICN-STORAGE] ✓ localStorage.get:', keys, '→', result);
         return result;
-      } catch (localError) {
-        window.ICN_DEBUG.warn('[ICN-STORAGE] ⚠️ localStorage failed:', localError.message);
+      } catch (e) {
+        window.ICN_DEBUG.warn('[ICN-STORAGE] localStorage.get KO:', e.message);
       }
-      
-      // Tentative 3 : mémoire
       const result = {};
-      for (const key of keyArray) {
-        if (key in memoryStorage) {
-          result[key] = memoryStorage[key];
-        }
-      }
-      window.ICN_DEBUG.log('[ICN-STORAGE] ⚠️ Using memory storage:', keys, '→', result);
+      for (const key of keyArray) if (key in memoryStorage) result[key] = memoryStorage[key];
       return result;
     },
-    
+
     async set(items) {
-      // Si forceLocalStorage activé, sauter browser.storage
-      if (!window.ICN_DEBUG.forceLocalStorage) {
-        // Tentative 1 : browser.storage
-        try {
-          await browser.storage.local.set(items);
-          window.ICN_DEBUG.log('[ICN-STORAGE] ✓ browser.storage.set:', items);
-          return;
-        } catch (browserError) {
-          window.ICN_DEBUG.warn('[ICN-STORAGE] ⚠️ browser.storage.set failed:', browserError.message);
-        }
-      }
-      
-      // Tentative 2 : localStorage
+      try { await browser.storage.local.set(items); return; }
+      catch (e) { window.ICN_DEBUG.warn('[ICN-STORAGE] browser.storage.set KO:', e.message); }
       try {
-        for (const key in items) {
-          if (items.hasOwnProperty(key)) {
-            try {
-              localStorage.setItem('icn_' + key, JSON.stringify(items[key]));
-            } catch (e) {
-              localStorage.setItem('icn_' + key, items[key]);
-            }
-          }
-        }
-        window.ICN_DEBUG.log('[ICN-STORAGE] ✓ localStorage.set:', items);
+        for (const key of Object.keys(items)) localStorage.setItem(PREFIX + key, JSON.stringify(items[key]));
         return;
-      } catch (localError) {
-        window.ICN_DEBUG.warn('[ICN-STORAGE] ⚠️ localStorage.set failed:', localError.message);
-      }
-      
-      // Tentative 3 : mémoire
-      for (const key in items) {
-        if (items.hasOwnProperty(key)) {
-          memoryStorage[key] = items[key];
-        }
-      }
-      window.ICN_DEBUG.log('[ICN-STORAGE] ⚠️ Using memory storage.set:', items);
+      } catch (e) { window.ICN_DEBUG.warn('[ICN-STORAGE] localStorage.set KO:', e.message); }
+      Object.assign(memoryStorage, items);
     },
-    
+
     async remove(keys) {
       const keyArray = Array.isArray(keys) ? keys : [keys];
-      
-      // Si forceLocalStorage activé, sauter browser.storage
-      if (!window.ICN_DEBUG.forceLocalStorage) {
-        // Tentative 1 : browser.storage
-        try {
-          await browser.storage.local.remove(keys);
-          window.ICN_DEBUG.log('[ICN-STORAGE] ✓ browser.storage.remove:', keys);
-        } catch (e) {
-          window.ICN_DEBUG.warn('[ICN-STORAGE] ⚠️ browser.storage.remove failed:', e.message);
-        }
-      }
-      
-      // Tentative 2 : localStorage
-      try {
-        for (const key of keyArray) {
-          localStorage.removeItem('icn_' + key);
-        }
-      } catch (e) {
-        window.ICN_DEBUG.warn('[ICN-STORAGE] ⚠️ localStorage.remove failed:', e.message);
-      }
-      
-      // Tentative 3 : mémoire
-      for (const key of keyArray) {
-        delete memoryStorage[key];
-      }
+      try { await browser.storage.local.remove(keys); }
+      catch (e) { window.ICN_DEBUG.warn('[ICN-STORAGE] browser.storage.remove KO:', e.message); }
+      try { for (const key of keyArray) localStorage.removeItem(PREFIX + key); } catch (e) { /* ignore */ }
+      for (const key of keyArray) delete memoryStorage[key];
     }
   };
-  
-  // Exposer le StorageManager globalement
-  window.ICN_STORAGE = StorageManager;
-  window.ICN_DEBUG.log('[ICN-STORAGE] ✓ Storage manager initialized with fallback support');
 })();
 
 window.ICN_CONST = {
-  KEY_ENABLED: "icn_enabled",
-  KEY_OLAF_DATA: "icn_olaf_data", // ✅ Stockage des données OLAF
-  KEY_CYCLE_CONFIG: "icn_cycle_config", // ✅ Configuration du cycle
+  KEY_ENABLED: 'icn_enabled',
+  KEY_CYCLE_OVERRIDE: 'icn_cycle_override',
 
-  // Configuration par défaut du cycle
+  // Repli si la page ne publie pas sa config cycle
   DEFAULT_CYCLE_CONFIG: {
-    cycleStartDate: "2026-02-09",  // Premier jour du cycle (J1)
-    cycleLength: 12,                // Longueur du cycle en jours
-    workingDays: [1, 2, 3, 6, 7, 8] // Quels jours du cycle sont travaillés
+    cycleStartDate: '2008-09-11',
+    cycleLength: 12,
+    workingDays: [1, 2, 3, 6, 7, 8, 12],
+    source: 'default'
   },
 
-  // Récupérer la configuration du cycle depuis le storage
-  async getCycleConfig() {
+  /**
+   * Config cycle publiée par ECLAIR : <script type="application/json" id="uciel-olaf-cycle-config">
+   * { cycleStartDate, cycleLength, workingDays, j1RefTs, source:"uciel" }
+   */
+  getPageCycleConfig() {
     try {
-      const result = await window.ICN_STORAGE.get(this.KEY_CYCLE_CONFIG);
-      return result[this.KEY_CYCLE_CONFIG] || this.DEFAULT_CYCLE_CONFIG;
+      const el = document.getElementById('uciel-olaf-cycle-config');
+      if (!el) return null;
+      const cfg = JSON.parse(el.textContent || '');
+      if (!cfg || !cfg.cycleStartDate || !cfg.cycleLength) return null;
+      return {
+        cycleStartDate: String(cfg.cycleStartDate),
+        cycleLength: parseInt(cfg.cycleLength, 10),
+        workingDays: Array.isArray(cfg.workingDays) ? cfg.workingDays.map(Number) : [],
+        source: cfg.source || 'uciel'
+      };
     } catch (e) {
-      window.ICN_DEBUG.warn('[ICN] getCycleConfig fallback to default:', e);
-      return this.DEFAULT_CYCLE_CONFIG;
+      return null;
     }
   },
 
-  // Calculer le jour dans le cycle à partir d'une date
+  /**
+   * Config effective = config page (ou défaut) + surcharge éventuelle des jours
+   * travaillés choisie par l'utilisateur dans les paramètres.
+   */
+  async getCycleConfig() {
+    const base = this.getPageCycleConfig() || this.DEFAULT_CYCLE_CONFIG;
+    let override = null;
+    try {
+      const r = await window.ICN_STORAGE.get(this.KEY_CYCLE_OVERRIDE);
+      override = r[this.KEY_CYCLE_OVERRIDE] || null;
+    } catch (e) { /* ignore */ }
+    if (override && Array.isArray(override.workingDays) && override.workingDays.length
+        && override.cycleLength === base.cycleLength) {
+      return Object.assign({}, base, { workingDays: override.workingDays.slice(), overridden: true });
+    }
+    return Object.assign({}, base, { overridden: false });
+  },
+
+  // Jour dans le cycle (1..cycleLength) pour une date ISO, par arithmétique
   getDayInCycle(dateStr, cycleStartDate, cycleLength) {
-    const start = new Date(cycleStartDate);
-    const current = new Date(dateStr);
-    
-    // Nombre de jours depuis le début du cycle
-    const diffDays = Math.floor((current - start) / (1000 * 60 * 60 * 24));
-    
-    // Position dans le cycle (1 à cycleLength)
-    // Gérer les cycles négatifs (dates avant cycleStartDate)
-    let dayInCycle = (diffDays % cycleLength) + 1;
-    if (dayInCycle <= 0) {
-      dayInCycle += cycleLength;
-    }
-    
-    return dayInCycle;
+    const start = Date.UTC(...cycleStartDate.split('-').map((v, i) => i === 1 ? Number(v) - 1 : Number(v)));
+    const cur = Date.UTC(...dateStr.split('-').map((v, i) => i === 1 ? Number(v) - 1 : Number(v)));
+    const diffDays = Math.round((cur - start) / 86400000);
+    return ((diffDays % cycleLength) + cycleLength) % cycleLength + 1;
   },
 
-  // Vérifier si une date est un jour travaillé
+  /**
+   * Jour travaillé ? Priorité au numéro de cycle affiché par ECLAIR dans la
+   * ligne J1/J2… (data-ciel-jc), sinon arithmétique sur la config.
+   */
   isWorkingDay(dateStr, config) {
-    const dayInCycle = this.getDayInCycle(dateStr, config.cycleStartDate, config.cycleLength);
-    return config.workingDays.includes(dayInCycle);
+    let jc = null;
+    if (window.ICN_DOM && window.ICN_DOM.getJcForDate) jc = window.ICN_DOM.getJcForDate(dateStr);
+    if (jc == null) jc = this.getDayInCycle(dateStr, config.cycleStartDate, config.cycleLength);
+    return config.workingDays.includes(jc);
   },
 
-  // Styles contours avec effet néon
-  OUTLINE_ALPHA_DEFAULT: "2px solid #25b6eb",       // 🟡 Jaune par défaut
-  OUTLINE_ALPHA_VALIDATED: "2px solid #15803d",     // 🟢 Vert foncé (validé statut_18)
-  OUTLINE_ALPHA_PENDING: "2px solid #faa92e",       // 🟢 Vert clair/Lime (en attente statut_17)
-  OUTLINE_ALPHA_INVALID: "2px solid #ef4444",       // 🔴 Rouge si manquant dans OLAF
-  OUTLINE_BETA_DEFAULT: "2px solid #25b6eb",        // 🔵 Bleu par défaut
-  OUTLINE_BETA_VALID: "2px solid #15803d",          // 🟢 Vert légèrement différent pour beta valide
-  OUTLINE_BETA_INVALID: "2px solid #ef4444",        // 🔴 Rouge si manquant dans OLAF
-  OUTLINE_TYPE_MISMATCH: "2px solid #a855f7",       // 🟣 Violet si alpha/beta inversé
-  
-  // Box-shadow pour effet néon
-  SHADOW_ALPHA_DEFAULT: "0 0 8px rgba(234, 179, 8, 0.6), 0 0 12px rgba(234, 179, 8, 0.3)",
-  SHADOW_ALPHA_VALIDATED: "0 0 8px rgba(21, 128, 61, 0.6), 0 0 12px rgba(21, 128, 61, 0.3)",
-  SHADOW_ALPHA_PENDING: "0 0 8px rgba(132, 204, 22, 0.6), 0 0 12px rgba(132, 204, 22, 0.3)",
-  SHADOW_ALPHA_INVALID: "0 0 8px rgba(239, 68, 68, 0.6), 0 0 12px rgba(239, 68, 68, 0.3)",
-  SHADOW_BETA_DEFAULT: "0 0 8px rgba(37, 99, 235, 0.6), 0 0 12px rgba(37, 99, 235, 0.3)",
-  SHADOW_BETA_VALID: "0 0 8px rgba(16, 185, 129, 0.6), 0 0 12px rgba(16, 185, 129, 0.3)",
-  SHADOW_BETA_INVALID: "0 0 8px rgba(239, 68, 68, 0.6), 0 0 12px rgba(239, 68, 68, 0.3)",
-  SHADOW_TYPE_MISMATCH: "0 0 8px rgba(168, 85, 247, 0.6), 0 0 12px rgba(168, 85, 247, 0.3)"
-  // GLOW PUISSANT 💫
-  // SHADOW_ALPHA_DEFAULT: "0 0 15px rgba(234, 179, 8, 1), 0 0 25px rgba(234, 179, 8, 0.7), 0 0 40px rgba(234, 179, 8, 0.5)",
-  // SHADOW_ALPHA_VALID: "0 0 15px rgba(34, 197, 94, 1), 0 0 25px rgba(34, 197, 94, 0.7), 0 0 40px rgba(34, 197, 94, 0.5)",
-  // SHADOW_ALPHA_INVALID: "0 0 15px rgba(239, 68, 68, 1), 0 0 25px rgba(239, 68, 68, 0.7), 0 0 40px rgba(239, 68, 68, 0.5)",
-  // SHADOW_BETA: "0 0 15px rgba(37, 99, 235, 1), 0 0 25px rgba(37, 99, 235, 0.7), 0 0 40px rgba(37, 99, 235, 0.5)"
+  // Contours
+  OUTLINE_ALPHA_DEFAULT:   '2px solid #25b6eb',
+  OUTLINE_ALPHA_VALIDATED: '2px solid #15803d',
+  OUTLINE_ALPHA_PENDING:   '2px solid #faa92e',
+  OUTLINE_ALPHA_INVALID:   '2px solid #ef4444',
+  OUTLINE_BETA_DEFAULT:    '2px solid #25b6eb',
+  OUTLINE_BETA_VALID:      '2px solid #15803d',
+  OUTLINE_BETA_INVALID:    '2px solid #ef4444',
+  OUTLINE_TYPE_MISMATCH:   '2px solid #a855f7',
+
+  SHADOW_ALPHA_DEFAULT:   '0 0 8px rgba(37, 182, 235, 0.5)',
+  SHADOW_ALPHA_VALIDATED: '0 0 8px rgba(21, 128, 61, 0.5)',
+  SHADOW_ALPHA_PENDING:   '0 0 8px rgba(250, 169, 46, 0.5)',
+  SHADOW_ALPHA_INVALID:   '0 0 8px rgba(239, 68, 68, 0.5)',
+  SHADOW_BETA_DEFAULT:    '0 0 8px rgba(37, 182, 235, 0.5)',
+  SHADOW_BETA_VALID:      '0 0 8px rgba(21, 128, 61, 0.5)',
+  SHADOW_BETA_INVALID:    '0 0 8px rgba(239, 68, 68, 0.5)',
+  SHADOW_TYPE_MISMATCH:   '0 0 8px rgba(168, 85, 247, 0.5)'
 };

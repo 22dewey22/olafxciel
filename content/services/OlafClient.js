@@ -1,160 +1,89 @@
 /**
- * Client OLAF - API calls + parsing
+ * Client OLAF — planning mensuel équipe (afficherMois.php) + parsing.
+ * Produit, pour chaque jour travaillé de la période, les agents en congé
+ * (alpha) et en stage (beta) avec leur statut OLAF.
  */
 class OlafClient {
   constructor() {
-    this.BASE_URL = "https://olafatco.dsna.aviation-civile.gouv.fr";
-    
-    // IDs d'agents à exclure du parsing (lignes de total, etc.)
     this.EXCLUDED_IDS = [];
   }
 
-  bytesToBase64(bytes) {
-    const binString = Array.from(bytes, (byte) =>
-      String.fromCodePoint(byte),
-    ).join("");
-    return btoa(binString);
-  }
-
-  async detectCible(login, pass) {
-    try {
-      const authHeader = "Basic " + this.bytesToBase64(new TextEncoder().encode(`${login}:${pass}`));
-      const url = `${this.BASE_URL}/dist/module/planningMonth.php?page_id=40`;
-      
-      const response = await fetch(url, {
-        method: "GET",
-        headers: {
-          "Authorization": authHeader,
-          "Accept": "text/html",
-          "Cache-Control": "no-cache"
-        },
-        credentials: 'include',
-        mode: 'cors'
-      });
-
-      if (!response.ok) {
-        return { ok: false, error: `HTTP ${response.status}` };
-      }
-
-      const html = await response.text();
-      
-      let match = html.match(/olafatco\.planningMonth\s*=\s*\{[^}]*cible\s*:\s*["'](\d+)["']/);
-      if (match && match[1]) {
-        const cible = parseInt(match[1], 10);
-        await window.ICN_STORAGE.set({ icn_olaf_cible: cible });
-        return { ok: true, cible };
-      }
-
-      match = html.match(/cible\s*:\s*["']?(\d+)["']?/);
-      if (match && match[1]) {
-        const cible = parseInt(match[1], 10);
-        await window.ICN_STORAGE.set({ icn_olaf_cible: cible });
-        return { ok: true, cible };
-      }
-
-      return { ok: false, error: "Cible non trouvée" };
-    } catch (err) {
-      return { ok: false, error: String(err) };
-    }
-  }
-
-  async fetchMonth({ login, pass, year, month, cible }) {
-    if (!login || !pass) {
-      return { ok: false, error: "Credentials manquants" };
-    }
-
-    if (!cible) {
+  /**
+   * Détecte la « cible » (agenda d'équipe) de l'utilisateur, mise en cache.
+   */
+  async detectCible(force = false) {
+    if (!force) {
       const stored = await window.ICN_STORAGE.get('icn_olaf_cible');
-      cible = stored.icn_olaf_cible;
-      if (!cible) {
-        return { ok: false, error: "Cible non détectée" };
-      }
+      if (stored.icn_olaf_cible) return { ok: true, cible: stored.icn_olaf_cible, cached: true };
     }
+    const r = await window.ICN_OLAF_PROXY.request({
+      path: '/dist/module/planningMonth.php?page_id=40',
+      headers: { 'Accept': 'text/html', 'Cache-Control': 'no-cache' }
+    });
+    if (!r.ok) return { ok: false, error: r.status === 401 ? 'OLAF non connecté' : (r.error || `HTTP ${r.status}`) };
+    const html = r.text || '';
+    let m = html.match(/olafatco\.planningMonth\s*=\s*\{[^}]*cible\s*:\s*["'](\d+)["']/)
+         || html.match(/cible\s*:\s*["']?(\d+)["']?/);
+    if (!m) return { ok: false, error: 'Cible OLAF introuvable' };
+    const cible = parseInt(m[1], 10);
+    await window.ICN_STORAGE.set({ icn_olaf_cible: cible });
+    return { ok: true, cible };
+  }
 
-    const today = `${year}-${String(month).padStart(2, '0')}-01`;
+  async fetchMonth({ year, month, cible }) {
     const formData = new URLSearchParams({
-      page_id: "40",
-      today,
+      page_id: '40',
+      today: `${year}-${String(month).padStart(2, '0')}-01`,
       annee: String(year),
       mois: String(month),
       cible: String(cible)
     });
-
-    try {
-      const authHeader = "Basic " + this.bytesToBase64(new TextEncoder().encode(`${login}:${pass}`));
-      const response = await fetch(`${this.BASE_URL}/dist/ajax/planningMonth/afficherMois.php`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-          "Authorization": authHeader,
-          "X-Requested-With": "XMLHttpRequest"
-        },
-        body: formData.toString()
-      });
-
-      if (!response.ok) {
-        return { ok: false, error: `HTTP ${response.status}` };
-      }
-
-      const data = await response.json();
-      return { ok: true, data };
-    } catch (err) {
-      return { ok: false, error: String(err) };
-    }
+    const r = await window.ICN_OLAF_PROXY.json({
+      path: '/dist/ajax/planningMonth/afficherMois.php',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      body: formData.toString()
+    });
+    if (!r.ok) return { ok: false, error: r.status === 401 ? 'OLAF non connecté' : r.error };
+    return { ok: true, data: r.data };
   }
 
-  async parseAgenda(agendaHtml, year, month, cycleConfig) {
-    // Parser le HTML en DOM
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(agendaHtml, 'text/html');
-    
-    // Extraire les noms des agents
-    const agentNamesMap = {};
-    const nomDivs = doc.querySelectorAll('div[id^="nom_"]');
-    nomDivs.forEach(div => {
-      const match = div.id.match(/nom_(\d+)/);
-      if (match) {
-        const agentId = match[1];
-        const title = div.getAttribute('title') || '';
-        // Extraire le nom avant <br> ou &lt;br&gt;
-        const name = title.split(/<br>|&lt;br&gt;/i)[0].trim();
-        if (name) {
-          agentNamesMap[agentId] = name;
-        }
-      }
+  /**
+   * Parse le HTML agenda d'un mois → Map(dateStr → [{agentId, agentName, classes, text}])
+   */
+  parseAgenda(agendaHtml, year, month, isWorkingDate) {
+    const doc = new DOMParser().parseFromString(agendaHtml, 'text/html');
+
+    const agentNames = {};
+    doc.querySelectorAll('div[id^="nom_"]').forEach(div => {
+      const m = div.id.match(/nom_(\d+)/);
+      if (!m) return;
+      const name = (div.getAttribute('title') || '').split(/<br>|&lt;br&gt;/i)[0].trim();
+      if (name) agentNames[m[1]] = name;
     });
-    
-    // Extraire les cases (cellules du planning)
-    const byDay = new Map();
-    const caseDivs = doc.querySelectorAll('div[id^="case_"]');
-    
-    caseDivs.forEach(caseDiv => {
+
+    const byDate = new Map();
+    doc.querySelectorAll('div[id^="case_"]').forEach(caseDiv => {
       const dayNum = parseInt(caseDiv.getAttribute('data-n'), 10);
       const agentId = caseDiv.getAttribute('data-ki');
-      const classes = caseDiv.className;
-      const text = caseDiv.textContent.trim();
-
+      if (!Number.isFinite(dayNum) || !agentId) return;
       if (this.EXCLUDED_IDS.includes(agentId)) return;
 
       const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
-      
-      // Vérifier si c'est un jour travaillé
-      if (!window.ICN_CONST.isWorkingDay(dateStr, cycleConfig)) return;
-      
-      // Calculer le jour dans le cycle pour affichage
-      const jCycle = window.ICN_CONST.getDayInCycle(dateStr, cycleConfig.cycleStartDate, cycleConfig.cycleLength);
+      if (!isWorkingDate(dateStr)) return;
 
-      // Si OLAF ne renvoie pas de nom, tant pis → Agent_ID
-      const agentName = agentNamesMap[agentId] || `Agent_${agentId}`;
-
-      if (!byDay.has(dayNum)) {
-        byDay.set(dayNum, { dayNum, jCycle, cases: [] });
-      }
-
-      byDay.get(dayNum).cases.push({ agentId, agentName, classes, text });
+      if (!byDate.has(dateStr)) byDate.set(dateStr, []);
+      byDate.get(dateStr).push({
+        agentId,
+        agentName: agentNames[agentId] || `Agent_${agentId}`,
+        classes: caseDiv.className || '',
+        text: (caseDiv.textContent || '').trim()
+      });
     });
-
-    return byDay;
+    return byDate;
   }
 
   hasTPA(text, classes) {
@@ -165,80 +94,55 @@ class OlafClient {
     return classes.split(/\s+/).includes('st');
   }
 
-  async buildReport({ login, pass, year, month, cible }) {
+  /**
+   * Rapport pour une période (plusieurs mois possibles).
+   * @returns {{ok:boolean, days?:Array<{day_str, alpha:Object, beta:Object}>, error?:string}}
+   */
+  async buildReport({ months, cible }) {
     try {
-      // Charger la config du cycle
       const cycleConfig = await window.ICN_CONST.getCycleConfig();
+      const isWorkingDate = (d) => window.ICN_CONST.isWorkingDay(d, cycleConfig);
 
       let cielAgentsList = [];
       if (window.ICN_AGENTS) {
         const agentsMap = await window.ICN_AGENTS.getAgentsList();
-        cielAgentsList = Object.keys(agentsMap);
-      if (agentsMap) {
-        cielAgentsList = Object.values(agentsMap).map(a => a.fullName);
-      }
-    }
-
-    const result = await this.fetchMonth({ login, pass, year, month, cible });
-    if (!result.ok) return { ok: false, error: `OLAF: ${result.error}` };
-
-    const agendaHtml = result.data?.agenda;
-    if (!agendaHtml) return { ok: false, error: "OLAF: agenda vide" };
-
-    const byDay = await this.parseAgenda(agendaHtml, year, month, cycleConfig);
-    const days = [];
-
-    for (const [dayNum, dayData] of byDay.entries()) {
-      const alpha = new Map(); // Changé de Set à Map pour stocker {nom: statut}
-      const beta = new Map();
-
-      for (const caseInfo of dayData.cases) {
-        const olafName = caseInfo.agentName;
-        if (olafName.startsWith('Agent_')) continue;
-
-        let cielMatch = null;
-        if (cielAgentsList.length > 0 && window.ICN_AGENT_MATCHER) {
-          cielMatch = window.ICN_AGENT_MATCHER.findCielMatch(olafName, cielAgentsList);
-        }
-        
-        const nameToUse = cielMatch || olafName;
-        
-        if (this.hasTPA(caseInfo.text, caseInfo.classes)) continue;
-
-        // Extraire le statut
-        let status = null;
-        if (caseInfo.classes.includes('statut_18')) {
-          status = 'validated'; // Congé validé
-        } else if (caseInfo.classes.includes('statut_17')) {
-          status = 'pending'; // Congé en attente
-        }
-
-        if (caseInfo.classes.includes('conges')) {
-          alpha.set(nameToUse, status);
-        } else if (this.hasStClass(caseInfo.classes)) {
-          beta.set(nameToUse, status);
-        }
+        cielAgentsList = Object.values(agentsMap || {}).map(a => a.fullName);
       }
 
-      const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
-      
-      // Convertir Map en objet {nom: statut}
-      const alphaObj = {};
-      const betaObj = {};
-      alpha.forEach((status, name) => { alphaObj[name] = status; });
-      beta.forEach((status, name) => { betaObj[name] = status; });
-      
-      days.push({
-        day_str: dateStr,
-        alpha: alphaObj,
-        beta: betaObj
-      });
-    }
+      const days = [];
+      for (const { year, month } of months) {
+        const result = await this.fetchMonth({ year, month, cible });
+        if (!result.ok) return { ok: false, error: `OLAF : ${result.error}` };
+        const agendaHtml = result.data?.agenda;
+        if (!agendaHtml) return { ok: false, error: `OLAF : agenda vide (${month}/${year})` };
 
-    return { ok: true, days };
-    
+        const byDate = this.parseAgenda(agendaHtml, year, month, isWorkingDate);
+        for (const [dateStr, cases] of byDate.entries()) {
+          const alpha = {};
+          const beta = {};
+          for (const c of cases) {
+            if (c.agentName.startsWith('Agent_')) continue;
+            if (this.hasTPA(c.text, c.classes)) continue;
+
+            let cielMatch = null;
+            if (cielAgentsList.length && window.ICN_AGENT_MATCHER) {
+              cielMatch = window.ICN_AGENT_MATCHER.findCielMatch(c.agentName, cielAgentsList);
+            }
+            const name = cielMatch || c.agentName;
+
+            let status = null;
+            if (c.classes.includes('statut_18')) status = 'validated';
+            else if (c.classes.includes('statut_17')) status = 'pending';
+
+            if (c.classes.includes('conges')) alpha[name] = status;
+            else if (this.hasStClass(c.classes)) beta[name] = status;
+          }
+          days.push({ day_str: dateStr, alpha, beta });
+        }
+      }
+      return { ok: true, days };
     } catch (error) {
-      window.ICN_DEBUG.error('[ICN-OLAF] buildReport failed:', error);
+      window.ICN_DEBUG.error('[ICN-OLAF] buildReport:', error);
       return { ok: false, error: error.message || String(error) };
     }
   }

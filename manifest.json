@@ -1,25 +1,19 @@
 {
-  "manifest_version": 2,
+  "manifest_version": 3,
   "name": "OLAF x CIEL",
-  "version": "0.4.0",
-  "description": "Compare automatiquement les plannings CIEL et OLAF avec coloration visuelle des différences.",
-
+  "version": "0.5.0",
+  "description": "Compare les plannings CIEL (ECLAIR) et OLAF directement dans le cahier, et permet de poser ses congés OLAF depuis CIEL.",
   "author": "Dewey",
-  
   "homepage_url": "https://github.com/22dewey22/olafxciel",
 
   "browser_specific_settings": {
     "gecko": {
       "id": "olaf-ciel-comparator@dewey.github.io",
-      "strict_min_version": "109.0",
+      "strict_min_version": "121.0",
       "data_collection_permissions": {
         "required": ["none"]
       }
     }
-  },
-
-  "data_collection_permissions": {
-    "required": []
   },
 
   "icons": {
@@ -27,59 +21,79 @@
     "128": "icons/icon-128.png"
   },
 
-  "permissions": [
-    "storage",
-    "tabs",
-    "activeTab",
+  "permissions": ["storage"],
+
+  "host_permissions": [
     "*://www.icnagenda.fr/ciel/*",
     "*://icnagenda.fr/ciel/*",
     "*://olafatco.dsna.aviation-civile.gouv.fr/*"
   ],
 
-  "web_accessible_resources": [
-    "content/ui/templates/*.html",
-    "content/ui/templates/*.css"
-  ],
-
-  "browser_action": {
-    "default_title": "OLAF x CIEL - Comparateur de plannings"
+  "background": {
+    "service_worker": "background.js",
+    "scripts": ["background.js"]
   },
+
+  "action": {
+    "default_title": "OLAF x CIEL - Comparateur de plannings",
+    "default_icon": {
+      "32": "icons/icon-32.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+
+  "web_accessible_resources": [
+    {
+      "resources": ["content/ui/templates/*.html", "content/ui/templates/*.css"],
+      "matches": ["*://www.icnagenda.fr/*", "*://icnagenda.fr/*"]
+    }
+  ],
 
   "content_scripts": [
     {
       "matches": [
-        "*://www.icnagenda.fr/ciel/*/*",
-        "*://icnagenda.fr/ciel/*/*",        
+        "*://www.icnagenda.fr/ciel/uciel*",
+        "*://icnagenda.fr/ciel/uciel*",
         "*://www.icnagenda.fr/ciel/ciel.php*",
         "*://icnagenda.fr/ciel/ciel.php*"
-            ],
+      ],
+      "js": ["content/bridge/eclair-bridge.js"],
+      "run_at": "document_start",
+      "all_frames": false
+    },
+    {
+      "matches": [
+        "*://www.icnagenda.fr/ciel/uciel*",
+        "*://icnagenda.fr/ciel/uciel*",
+        "*://www.icnagenda.fr/ciel/ciel.php*",
+        "*://icnagenda.fr/ciel/ciel.php*"
+      ],
       "js": [
         "shared/constants.js",
         "shared/rules.js",
         "shared/utils/text.js",
-        
+
         "content/core/dom.js",
         "content/core/classify.js",
-        
+
         "content/agents/AgentCache.js",
         "content/agents/agent-matcher.js",
-        
+
+        "content/services/OlafProxy.js",
         "content/services/OlafClient.js",
-        "content/services/CielParser.js",
         "content/services/RemplacementParser.js",
         "content/services/RemplacementDisplay.js",
         "content/services/OutlineManager.js",
-        "content/services/TotalsManager.js",
-        "content/services/CycleClient.js",
         "content/services/CongesClient.js",
-        
+
         "content/ui/PanelUI.js",
         "content/ui/PanelHandlers.js",
         "content/ui/CongesUI.js",
-        
+
         "content/core/main.js"
       ],
-      "run_at": "document_idle"
+      "run_at": "document_idle",
+      "all_frames": false
     }
   ]
 }

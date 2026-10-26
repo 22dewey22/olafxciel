@@ -1,8 +1,8 @@
 # OLAFxCIEL
 
-Extension Firefox (Manifest V3) qui intègre les données de planning OLAF directement dans l'interface CIEL, sur `icnagenda.fr/ciel/`.
+Extension navigateur (Manifest V3, Chrome / Edge / Firefox) qui intègre les données de planning OLAF directement dans le cahier CIEL / ECLAIR, sur `icnagenda.fr/ciel/`.
 
-**Version 0.4.0** — Compatible Firefox 109+
+**Version 0.5.0** — Compatible Chrome / Edge et Firefox 121+
 
 ---
 
@@ -32,31 +32,42 @@ L'extension récupère les données OLAF avec vos identifiants et colorie les ce
 
 Les jours de repos avec remplacement OLAF sont signalés par un astérisque ★ au-dessus de la colonne cycle correspondante. Un tooltip au survol affiche le détail.
 
-### Compteurs automatiques
+### Compteurs
 
-Lignes de totaux ALPHA et BETA ajoutées en bas du tableau, calculées par jour travaillé selon la configuration du cycle.
+ECLAIR affiche désormais nativement ses lignes α et β dans l'entête du cahier : l'extension ne les duplique plus.
 
 ### Envoi de congés depuis CIEL
 
-Nouveau module v0.4.0 : posez vos congés directement depuis le panneau, sans quitter CIEL. Les types disponibles sont chargés dynamiquement depuis OLAF selon votre profil et votre affectation courante.
+Posez vos congés directement depuis le panneau, sans quitter CIEL. Les types disponibles sont chargés dynamiquement depuis OLAF selon votre profil et votre affectation courante.
+
+### Connexion OLAF
+
+Deux possibilités, au choix :
+
+- **Session navigateur** (recommandé) : connectez-vous à OLAF dans un onglet, l'extension réutilise cette session. Aucun identifiant à saisir.
+- **Identifiants dans le panneau** : login et mot de passe OLAF, mémorisables. Ils ne quittent jamais votre navigateur.
 
 ---
 
 ## Installation
 
-### Depuis Mozilla Add-ons *(lien à venir)*
+### Chrome / Edge
 
-1. Rendez-vous sur la page de l'extension
-2. Cliquez sur **Ajouter à Firefox**
-3. Acceptez les permissions demandées
+1. Téléchargez l'archive `dist/olafxciel-x.y.z.zip` (ou clonez le dépôt) et dézippez-la
+2. Ouvrez `chrome://extensions` (ou `edge://extensions`), activez le **mode développeur**
+3. **Charger l'extension non empaquetée** → sélectionnez le dossier contenant `manifest.json`
 
-### Installation manuelle (développeurs)
+### Firefox
+
+- Version signée : fichier `.xpi` fourni dans les releases (ou Mozilla Add-ons)
+- Test : `about:debugging#/runtime/this-firefox` → **Charger un module complémentaire temporaire** → `manifest.json`
+
+### Depuis les sources
 
 ```bash
 git clone https://github.com/22dewey22/olafxciel.git
+cd olafxciel && ./build.sh   # → dist/olafxciel-<version>.zip
 ```
-
-Dans Firefox : `about:debugging` → **Charger un module temporaire** → sélectionner `manifest.json`
 
 ---
 
@@ -66,23 +77,17 @@ Dans Firefox : `about:debugging` → **Charger un module temporaire** → sélec
 
 Ouvrez `https://www.icnagenda.fr/ciel/`. Un panneau apparaît sur la page. Activez les contours avec le toggle **Actif/Inactif**.
 
-### 2. Configurer le cycle de travail
+### 2. Cycle de travail
 
-Dans l'onglet **⚙ Settings** :
-
-1. Renseignez la date de votre **J1** (premier jour du cycle)
-2. Choisissez la longueur du cycle (6 ou 12 jours)
-3. Cochez les jours travaillés (ex : J1, J2, J3, J6, J7, J8)
-4. La config est sauvegardée automatiquement
+Le cycle (J1, longueur, jours travaillés) est lu directement dans ECLAIR. Dans **⚙ Paramètres**, vous pouvez seulement changer les jours comptés comme travaillés, et revenir à la config ECLAIR d'un clic.
 
 ### 3. Charger les données OLAF
 
-1. Entrez vos identifiants OLAF dans le panneau
-2. Cochez **Mémoriser** pour sauvegarder le mot de passe (optionnel)
-3. Cliquez sur **Charger OLAF**
-4. Les contours se mettent à jour
+1. Connectez-vous à OLAF dans un onglet (bouton **Ouvrir OLAF**), ou saisissez vos identifiants dans le panneau
+2. Cliquez sur **Charger OLAF**
+3. Les contours se mettent à jour pour toute la période affichée, même sur plusieurs mois
 
-Activez **Auto-chargement** pour recharger automatiquement au changement de mois.
+**Recharger au changement de période** (activé par défaut) recharge OLAF automatiquement quand vous changez la période dans ECLAIR.
 
 ### 4. Poser un congé
 
@@ -99,9 +104,9 @@ En cas de collision ou de décompte insuffisant, une popup de confirmation s'aff
 
 Si certaines cellules ne sont pas détectées automatiquement :
 
-1. Dans **⚙ Settings**, sélectionnez **Mode Alpha** ou **Mode Beta**
-2. Cliquez sur les cellules à ajouter
-3. Repassez en **Mode Normal**
+1. Dans **⚙ Paramètres**, sélectionnez **Congé** ou **Stage**
+2. Cliquez sur les cases du cahier à associer à ce type
+3. Repassez en **Normal**
 
 ---
 
@@ -109,10 +114,9 @@ Si certaines cellules ne sont pas détectées automatiquement :
 
 | Permission | Usage |
 |---|---|
-| `storage` | Sauvegarde des préférences (identifiants, config cycle, position du panneau) |
-| `tabs`, `activeTab` | Détection du changement de mois dans CIEL |
-| `*://www.icnagenda.fr/*` | Accès au planning CIEL |
-| `*://olafatco.dsna.aviation-civile.gouv.fr/*` | Connexion à OLAF |
+| `storage` | Sauvegarde des préférences (identifiants optionnels, jours travaillés, position du panneau) |
+| `*://www.icnagenda.fr/ciel/*` | Accès au cahier CIEL / ECLAIR |
+| `*://olafatco.dsna.aviation-civile.gouv.fr/*` | Appels OLAF depuis le script d'arrière-plan |
 
 **Vos identifiants ne sont jamais envoyés ailleurs que vers OLAF. Aucune donnée ne quitte votre navigateur.**
 
@@ -121,10 +125,10 @@ Si certaines cellules ne sont pas détectées automatiquement :
 ## FAQ
 
 **Les contours n'apparaissent pas**
-Vérifiez que le toggle est sur **Actif**. Rechargez la page CIEL. Assurez-vous d'être sur `www.icnagenda.fr/ciel/`.
+Vérifiez que le toggle est sur **Actif**. Rechargez la page CIEL. Assurez-vous d'être sur `www.icnagenda.fr/ciel/uciel.php`.
 
-**OLAF ne se charge pas**
-Vérifiez vos identifiants. Assurez-vous de ne pas avoir de bloqueur de requêtes actif sur le domaine OLAF.
+**OLAF « non connecté »**
+Ouvrez OLAF dans un onglet et connectez-vous, puis cliquez **Tester**. Sinon saisissez vos identifiants dans le panneau. Vérifiez l'absence de bloqueur de requêtes sur le domaine OLAF.
 
 **Le module congés affiche "non disponible"**
 Votre profil ne comporte pas de congés auto-posables sur l'affectation courante (chef d'équipe, autre centre, stagiaire en phase TPA…). Utilisez directement l'interface OLAF dans ce cas.
@@ -144,6 +148,13 @@ Merci d'inclure : version Firefox, version extension, description du problème, 
 ---
 
 ## Changelog
+
+### v0.5.0
+- ✨ Compatibilité ECLAIR (`uciel.php`, période libre, rechargement AJAX)
+- ✨ Manifest V3 commun Chrome / Edge / Firefox, appels OLAF via le script d'arrière-plan
+- ✨ OLAF via la session du navigateur, identifiants optionnels
+- ✨ Cycle lu dans ECLAIR, nouvelle interface du panneau
+- 🗑️ Lignes de totaux (ECLAIR affiche ses propres lignes α/β)
 
 ### v0.4.0
 - ✨ Module d'envoi de congés depuis CIEL (types chargés dynamiquement, gestion collisions/décompte)

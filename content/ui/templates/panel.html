@@ -1,106 +1,110 @@
 <div id="icn-panel" class="icn-panel">
 
-  <!-- Header -->
-  <div id="icn-panel-header" class="icn-panel-header">
-    <span class="icn-panel-title">OLAF × CIEL</span>
-    <div class="icn-panel-actions">
-      <button id="icn-minimize" class="icn-btn-icon" title="Réduire / Agrandir">−</button>
+  <div id="icn-panel-header" class="icn-head">
+    <span class="icn-head-title">OLAF <em>×</em> CIEL</span>
+    <span id="icn-version" class="icn-head-ver"></span>
+    <div class="icn-head-actions">
+      <button id="icn-settings-tab" class="icn-icon-btn" title="Paramètres" aria-label="Paramètres">⚙</button>
+      <button id="icn-minimize" class="icn-icon-btn" title="Réduire / agrandir" aria-label="Réduire">–</button>
     </div>
   </div>
 
-  <!-- Body -->
-  <div id="icn-panel-body" class="icn-panel-body">
+  <div id="icn-panel-body" class="icn-body">
 
-    <!-- Contours -->
-    <div class="icn-section">
-      <div class="icn-section-label">Contours Alpha / Beta</div>
-      <div class="icn-toggle-row">
-        <label class="icn-toggle">
-          <input type="checkbox" id="icn-contours-toggle">
-          <span class="icn-toggle-track"><span class="icn-toggle-thumb"></span></span>
-        </label>
-        <span id="icn-contours-status" class="icn-status-text">Inactif</span>
-      </div>
-    </div>
-
-    <!-- OLAF -->
-    <div class="icn-section">
-      <div class="icn-section-label">Connexion OLAF</div>
-      <input type="text" id="icn-olaf-login" class="icn-input" placeholder="Login" autocomplete="off">
-      <div class="icn-pass-row">
-        <input type="password" id="icn-olaf-pass" class="icn-input icn-input-pass" placeholder="Mot de passe" autocomplete="new-password">
-        <button id="icn-toggle-password" class="icn-btn-eye" title="Afficher / masquer">👁</button>
-      </div>
-      <label class="icn-check-row">
-        <input type="checkbox" id="icn-olaf-remember">
-        <span>Mémoriser le mot de passe</span>
+    <div class="icn-status-row">
+      <label class="icn-switch">
+        <input type="checkbox" id="icn-contours-toggle">
+        <span class="icn-switch-track"></span>
+        <span class="icn-switch-label">Contours CIEL ↔ OLAF</span>
       </label>
-      <div class="icn-toggle-row" style="margin-top:8px;">
-        <label class="icn-toggle">
-          <input type="checkbox" id="icn-olaf-autoload">
-          <span class="icn-toggle-track"><span class="icn-toggle-thumb"></span></span>
-        </label>
-        <span class="icn-status-text">Auto-chargement</span>
+      <span id="icn-contours-status" class="icn-chip">Inactif</span>
+    </div>
+
+    <section class="icn-section">
+      <div class="icn-section-head">
+        <span class="icn-section-title">OLAF</span>
+        <span class="icn-conn" id="icn-olaf-conn" title="État de la connexion OLAF">
+          <span id="icn-olaf-conn-dot" class="icn-dot"></span>
+          <span id="icn-olaf-conn-text">vérification…</span>
+        </span>
       </div>
-      <button id="icn-olaf-test" class="icn-btn icn-btn-primary" style="margin-top:10px;">Mettre à jour les contours</button>
-      <div id="icn-olaf-status" class="icn-feedback"></div>
-    </div>
+      <div class="icn-btn-row">
+        <button id="icn-olaf-load" class="icn-btn icn-btn-primary">Charger OLAF</button>
+        <button id="icn-olaf-open" class="icn-btn">Ouvrir OLAF</button>
+      </div>
+      <label class="icn-switch icn-switch-sm">
+        <input type="checkbox" id="icn-olaf-autoload">
+        <span class="icn-switch-track"></span>
+        <span class="icn-switch-label">Recharger au changement de période</span>
+      </label>
+      <details id="icn-creds" class="icn-details">
+        <summary>Identifiants OLAF <span class="icn-muted">(optionnel)</span></summary>
+        <p class="icn-hint">Inutile si vous êtes déjà connecté à OLAF dans un onglet. Les identifiants ne quittent jamais votre navigateur.</p>
+        <input type="text" id="icn-olaf-login" class="icn-input" placeholder="Login OLAF" autocomplete="off" spellcheck="false">
+        <div class="icn-pass-row">
+          <input type="password" id="icn-olaf-pass" class="icn-input" placeholder="Mot de passe" autocomplete="new-password">
+          <button id="icn-toggle-password" class="icn-icon-btn icn-icon-btn--flat" title="Afficher / masquer" type="button">👁</button>
+        </div>
+        <div class="icn-row-between">
+          <label class="icn-check"><input type="checkbox" id="icn-olaf-remember"> Mémoriser</label>
+          <button id="icn-olaf-check" class="icn-btn icn-btn-sm" type="button">Tester</button>
+        </div>
+      </details>
+      <div id="icn-olaf-status" class="icn-feedback" aria-live="polite"></div>
+    </section>
 
-    <!-- Congés -->
-    <div class="icn-section icn-section-last">
-      <div class="icn-section-label">Envoi de congés</div>
-      <button id="icn-cg-open-btn" class="icn-btn icn-btn-secondary">+ Nouveau congé</button>
+    <section class="icn-section">
+      <div class="icn-section-head">
+        <span class="icn-section-title">Congés OLAF</span>
+      </div>
+      <button id="icn-cg-open-btn" class="icn-btn icn-btn-block">+ Nouveau congé</button>
       <div id="icn-cg-container"></div>
-    </div>
+    </section>
 
-    <div id="icn-status-message" class="icn-feedback hidden"></div>
+    <details class="icn-details icn-legend">
+      <summary>Légende des contours</summary>
+      <ul class="icn-legend-list">
+        <li><i style="--c:#15803d"></i>Validé dans OLAF (congé) / présent (stage)</li>
+        <li><i style="--c:#faa92e"></i>En attente dans OLAF</li>
+        <li><i style="--c:#ef4444"></i>Absent d’OLAF</li>
+        <li><i style="--c:#a855f7"></i>Type inversé (congé ↔ stage)</li>
+        <li><i style="--c:#25b6eb"></i>Dans OLAF mais rien dans CIEL</li>
+        <li><i style="--c:#2563eb"></i>OLAF non chargé</li>
+        <li><span class="icn-legend-star">★</span>Rempla demandé sur un jour de repos</li>
+      </ul>
+    </details>
+
+    <div id="icn-status-message" class="icn-feedback hidden" aria-live="polite"></div>
   </div>
 
-  <!-- Onglet settings : HORS du panel settings pour rester visible même quand ce dernier est fermé -->
-  <div id="icn-settings-tab" class="icn-settings-tab" title="Paramètres">⚙</div>
+  <div id="icn-settings-panel" class="icn-settings">
+    <div class="icn-settings-title">Paramètres</div>
 
-  <!-- Settings panel latéral -->
-  <div id="icn-settings-panel" class="icn-settings-panel">
-    <div class="icn-settings-content">
-      <div class="icn-settings-title">Paramètres</div>
-
-      <div class="icn-set-section">
-        <div class="icn-set-label">Mode</div>
-        <div class="icn-radio-group">
-          <label class="icn-radio-btn"><input type="radio" name="learning-mode" value="normal" checked><span>Normal</span></label>
-          <label class="icn-radio-btn"><input type="radio" name="learning-mode" value="alpha"><span>Alpha</span></label>
-          <label class="icn-radio-btn"><input type="radio" name="learning-mode" value="beta"><span>Beta</span></label>
-        </div>
-        <div id="icn-learning-instructions" class="icn-hint" style="display:none;">Cliquez sur les cases du type sélectionné.</div>
+    <div class="icn-set-section">
+      <div class="icn-set-label">Apprentissage des cases</div>
+      <div class="icn-segmented">
+        <label><input type="radio" name="learning-mode" value="normal" checked><span>Normal</span></label>
+        <label><input type="radio" name="learning-mode" value="alpha"><span>Congé</span></label>
+        <label><input type="radio" name="learning-mode" value="beta"><span>Stage</span></label>
       </div>
+      <div id="icn-learning-instructions" class="icn-hint" style="display:none;">Cliquez sur les cases du cahier à classer dans ce type. Recliquez pour retirer.</div>
+    </div>
 
-      <div class="icn-set-section">
-        <div class="icn-set-label">Alpha (congés) <span id="icn-alpha-count" class="icn-badge">0</span></div>
-        <div id="icn-alpha-list" class="icn-class-list"><span class="icn-empty">Aucune classe</span></div>
-      </div>
+    <div class="icn-set-section">
+      <div class="icn-set-label">Congés (alpha) <span id="icn-alpha-count" class="icn-badge">0</span></div>
+      <div id="icn-alpha-list" class="icn-class-list"><span class="icn-empty">Aucune classe apprise</span></div>
+    </div>
 
-      <div class="icn-set-section">
-        <div class="icn-set-label">Beta (stages) <span id="icn-beta-count" class="icn-badge">0</span></div>
-        <div id="icn-beta-list" class="icn-class-list"><span class="icn-empty">Aucune classe</span></div>
-      </div>
+    <div class="icn-set-section">
+      <div class="icn-set-label">Stages (beta) <span id="icn-beta-count" class="icn-badge">0</span></div>
+      <div id="icn-beta-list" class="icn-class-list"><span class="icn-empty">Aucune classe apprise</span></div>
+    </div>
 
-      <div class="icn-set-section">
-        <div class="icn-set-label">Premier jour J1</div>
-        <input type="date" id="icn-cycle-start-date" class="icn-input">
-      </div>
-
-      <div class="icn-set-section">
-        <div class="icn-set-label">Longueur du cycle</div>
-        <div class="icn-radio-group">
-          <label class="icn-radio-btn"><input type="radio" name="cycle-length" value="6"><span>6 j.</span></label>
-          <label class="icn-radio-btn"><input type="radio" name="cycle-length" value="12" checked><span>12 j.</span></label>
-        </div>
-      </div>
-
-      <div class="icn-set-section">
-        <div class="icn-set-label">Jours travaillés</div>
-        <div id="icn-working-days-container" class="icn-days-grid"></div>
-      </div>
+    <div class="icn-set-section">
+      <div class="icn-set-label">Cycle de travail</div>
+      <div id="icn-cycle-info" class="icn-hint"></div>
+      <div id="icn-working-days-container" class="icn-days-grid"></div>
+      <button id="icn-cycle-reset" class="icn-btn icn-btn-sm" type="button">Reprendre la config ECLAIR</button>
     </div>
   </div>
 

@@ -1,5 +1,5 @@
 /**
- * Gestion des événements du panel
+ * Événements du panneau.
  */
 class PanelHandlers {
   constructor(panelUI) {
@@ -8,492 +8,244 @@ class PanelHandlers {
     this.learningClickHandler = null;
   }
 
+  q(sel) { return this.ui.panel.querySelector(sel); }
+
   async attach() {
     const panel = this.ui.panel;
+    const settingsPanel = this.ui.settingsPanel;
 
-    // Settings panel toggle
-    const settingsTab = document.getElementById('icn-settings-tab');
-    const settingsPanel = document.getElementById('icn-settings-panel');
-    
-    if (settingsTab && settingsPanel) {
-      settingsTab.addEventListener('click', () => {
-        const isOpening = !settingsPanel.classList.contains('open');
-        settingsPanel.classList.toggle('open');
-        window.ICN_STORAGE.set({ icn_panel_state: { minimized: false, settingsOpen: isOpening } });
-        
-        // Si on ferme le panneau, désactiver le mode apprentissage
-        if (!isOpening && this.learningMode !== 'normal') {
-          // Réinitialiser au mode normal
-          const normalRadio = panel.querySelector('input[name="learning-mode"][value="normal"]');
-          if (normalRadio) {
-            normalRadio.checked = true;
-            this.handleLearningModeChange({ target: normalRadio });
-          }
-        }
-      });
-    }
-
-    // Minimize button — toggle collapse/expand
-    const minimizeBtn = panel.querySelector('#icn-minimize');
-
-    const collapsePanel = () => {
-      panel.classList.add('minimized');
-      if (settingsPanel) settingsPanel.classList.remove('open');
-      window.ICN_STORAGE.set({ icn_panel_state: { minimized: true, settingsOpen: false } });
-    };
-
-    const expandPanel = () => {
-      panel.classList.remove('minimized');
-      window.ICN_STORAGE.set({ icn_panel_state: { minimized: false, settingsOpen: false } });
-    };
-
-    if (minimizeBtn) {
-      minimizeBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (panel.classList.contains('minimized')) {
-          expandPanel();
-        } else {
-          collapsePanel();
-        }
-      });
-    }
-    // Toggle contours
-    const toggleContours = panel.querySelector('#icn-contours-toggle');
-    const contoursStatus = panel.querySelector('#icn-contours-status');
-    
-    if (toggleContours) {
-      toggleContours.addEventListener('change', async (e) => {
-        try {
-          const enabled = e.target.checked;
-          await window.ICN_STORAGE.set({ icn_enabled: enabled });
-
-          if (contoursStatus) {
-            contoursStatus.textContent = enabled ? 'Actif' : 'Inactif';
-            contoursStatus.style.color = enabled ? '#10b981' : '#6b7280';
-          }
-
-          if (enabled) {
-            await window.ICN_MAIN.applyAll();
-          } else {
-            if (window.ICN_OUTLINE)        await window.ICN_OUTLINE.clearAll();
-            if (window.ICN_REMPLA_DISPLAY) await window.ICN_REMPLA_DISPLAY.clearAll();
-            if (window.ICN_TOTALS)         window.ICN_TOTALS.remove();
-          }
-        } catch (error) {
-          window.ICN_DEBUG.error('[ICN-PANEL] Toggle contours error:', error);
-        }
-      });
-    }
-
-    // OLAF auto-load toggle
-    const autoloadToggle = panel.querySelector('#icn-olaf-autoload');
-    if (autoloadToggle) {
-      autoloadToggle.addEventListener('change', async (e) => {
-        try {
-          await window.ICN_STORAGE.set({ icn_olaf_autoload: e.target.checked });
-        } catch (error) {
-          window.ICN_DEBUG.error('[ICN-PANEL] Auto-load toggle error:', error);
-        }
-      });
-    }
-
-    // Remember password
-    const rememberCheckbox = panel.querySelector('#icn-olaf-remember');
-    if (rememberCheckbox) {
-      rememberCheckbox.addEventListener('change', async (e) => {
-        try {
-          const remember = e.target.checked;
-          await window.ICN_STORAGE.set({ olaf_remember: remember });
-          
-          if (!remember) {
-            await window.ICN_STORAGE.remove('olaf_pass');
-          }
-        } catch (error) {
-          window.ICN_DEBUG.error('[ICN-PANEL] Remember toggle error:', error);
-        }
-      });
-    }
-
-    // OLAF test button
-    const testBtn = panel.querySelector('#icn-olaf-test');
-    if (testBtn) {
-      testBtn.addEventListener('click', () => this.handleOlafLoad());
-    }
-
-    // Toggle password visibility
-    const togglePasswordBtn = panel.querySelector('#icn-toggle-password');
-    const passwordInput = panel.querySelector('#icn-olaf-pass');
-    if (togglePasswordBtn && passwordInput) {
-      // Ajouter hover effect
-      togglePasswordBtn.addEventListener('mouseenter', () => {
-        togglePasswordBtn.style.background = 'rgba(0, 128, 255, 0.2)';
-        togglePasswordBtn.style.borderColor = 'rgba(0, 200, 255, 0.5)';
-      });
-      togglePasswordBtn.addEventListener('mouseleave', () => {
-        togglePasswordBtn.style.background = 'rgba(0, 0, 0, 0.2)';
-        togglePasswordBtn.style.borderColor = 'rgba(100, 150, 255, 0.3)';
-      });
-      
-      // Toggle visibility
-      togglePasswordBtn.addEventListener('click', () => {
-        const isPassword = passwordInput.type === 'password';
-        passwordInput.type = isPassword ? 'text' : 'password';
-        togglePasswordBtn.textContent = isPassword ? '🙈' : '👁️';
-      });
-    }
-
-    // Copy diff button
-    // Learning mode radio buttons
-    const learningModeRadios = panel.querySelectorAll('input[name="learning-mode"]');
-    learningModeRadios.forEach(radio => {
-      radio.addEventListener('change', (e) => this.handleLearningModeChange(e));
+    // Volet paramètres
+    this.q('#icn-settings-tab')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (panel.classList.contains('minimized')) panel.classList.remove('minimized');
+      const opening = !settingsPanel.classList.contains('open');
+      settingsPanel.classList.toggle('open', opening);
+      window.ICN_STORAGE.set({ icn_panel_state: { minimized: false, settingsOpen: opening } });
+      if (!opening && this.learningMode !== 'normal') this.setLearningMode('normal');
     });
 
-    // Bouton "Nouveau congé"
-    const cgOpenBtn = panel.querySelector('#icn-cg-open-btn');
-    if (cgOpenBtn) {
-      cgOpenBtn.addEventListener('click', () => {
-        const container = panel.querySelector('#icn-cg-container');
-        if (container && window.ICN_CONGES_UI) {
-          window.ICN_CONGES_UI.toggle(container);
-          cgOpenBtn.textContent = window.ICN_CONGES_UI._open ? '✕ Fermer' : '+ Nouveau congé';
-        }
-      });
-    }
+    // Réduire / agrandir
+    this.q('#icn-minimize')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const minimized = !panel.classList.contains('minimized');
+      panel.classList.toggle('minimized', minimized);
+      if (minimized) settingsPanel.classList.remove('open');
+      window.ICN_STORAGE.set({ icn_panel_state: { minimized, settingsOpen: false } });
+    });
 
-    // Cycle configuration
+    // Contours on/off
+    this.q('#icn-contours-toggle')?.addEventListener('change', async (e) => {
+      const enabled = e.target.checked;
+      await window.ICN_STORAGE.set({ icn_enabled: enabled });
+      this.ui.setEnabled(enabled, false);
+      if (enabled) await window.ICN_MAIN.applyAll();
+      else await window.ICN_MAIN.clearAll();
+    });
+
+    // Auto-chargement
+    this.q('#icn-olaf-autoload')?.addEventListener('change', (e) => {
+      window.ICN_STORAGE.set({ icn_olaf_autoload: e.target.checked });
+    });
+
+    // Mémoriser
+    this.q('#icn-olaf-remember')?.addEventListener('change', async (e) => {
+      const remember = e.target.checked;
+      await window.ICN_STORAGE.set({ olaf_remember: remember });
+      if (!remember) await window.ICN_STORAGE.remove('olaf_pass');
+    });
+
+    // Œil mot de passe
+    const pass = this.q('#icn-olaf-pass');
+    this.q('#icn-toggle-password')?.addEventListener('click', () => {
+      pass.type = pass.type === 'password' ? 'text' : 'password';
+    });
+
+    // Identifiants → proxy dès qu'ils changent
+    const syncCreds = () => {
+      const c = this.ui.getCredentials();
+      window.ICN_OLAF_PROXY.setCredentials(c.login, c.pass);
+    };
+    this.q('#icn-olaf-login')?.addEventListener('input', syncCreds);
+    pass?.addEventListener('input', syncCreds);
+    syncCreds();
+
+    this.q('#icn-olaf-check')?.addEventListener('click', () => this.checkConnection(true));
+    this.q('#icn-olaf-open')?.addEventListener('click', () => window.ICN_OLAF_PROXY.openOlaf());
+    this.q('#icn-olaf-load')?.addEventListener('click', () => this.handleOlafLoad());
+
+    // Apprentissage
+    panel.querySelectorAll('input[name="learning-mode"]').forEach(radio => {
+      radio.addEventListener('change', (e) => this.setLearningMode(e.target.value));
+    });
+
+    // Congés
+    this.q('#icn-cg-open-btn')?.addEventListener('click', async () => {
+      const container = this.q('#icn-cg-container');
+      const btn = this.q('#icn-cg-open-btn');
+      if (container && window.ICN_CONGES_UI) {
+        await window.ICN_CONGES_UI.toggle(container);
+        btn.textContent = window.ICN_CONGES_UI.isOpen() ? '✕ Fermer' : '+ Nouveau congé';
+      }
+    });
+
     await this.initCycleConfig();
+    await this.updateLearningLists();
+  }
 
-    // Initial update of learning lists
-    this.updateLearningLists();
+  // ── Connexion OLAF ──────────────────────────────────────────────────────
+
+  async checkConnection(verbose = false) {
+    this.ui.setConnection('busy');
+    const creds = this.ui.getCredentials();
+    if (creds.login && creds.pass) await this.ui.saveCredentials(creds);
+    const status = await window.ICN_OLAF_PROXY.status(true);
+    this.ui.setConnection(status);
+    if (verbose) {
+      if (status.connected) this.ui.showStatus(`Connecté à OLAF (${status.mode === 'creds' ? 'identifiants' : 'session navigateur'})`, 'success');
+      else this.ui.showStatus(`OLAF : ${status.reason || 'non connecté'}`, 'error');
+    }
+    return status;
   }
 
   async handleOlafLoad() {
-    const loginInput = this.ui.panel.querySelector('#icn-olaf-login');
-    const passInput = this.ui.panel.querySelector('#icn-olaf-pass');
-    const rememberCheckbox = this.ui.panel.querySelector('#icn-olaf-remember');
-    const statusEl = this.ui.panel.querySelector('#icn-olaf-status');
+    const btn = this.q('#icn-olaf-load');
+    const creds = this.ui.getCredentials();
+    if (creds.login && creds.pass) await this.ui.saveCredentials(creds);
 
-    const login = loginInput?.value?.trim() || '';
-    const pass = passInput?.value || '';
-    const remember = rememberCheckbox?.checked || false;
-
-    if (!login || !pass) {
-      this.showStatus(statusEl, 'Login et mot de passe requis', 'error');
-      return;
-    }
-
-    this.showStatus(statusEl, '⏳ Chargement OLAF...', 'info');
-
+    btn.disabled = true;
+    this.ui.showStatus('Chargement OLAF…', 'info', { timeout: 0 });
     try {
-      // Sauvegarder les credentials
-      await window.ICN_STORAGE.set({
-        olaf_login: login,
-        olaf_pass: remember ? pass : '',
-        olaf_remember: remember
-      });
-
-      // Détecter la cible
-      let cible = null;
-      const storedCible = await window.ICN_STORAGE.get('icn_olaf_cible');
-      if (storedCible.icn_olaf_cible) {
-        cible = storedCible.icn_olaf_cible;
+      const r = await window.ICN_MAIN.loadOlaf({ force: true });
+      if (r.ok) {
+        this.ui.showStatus(`OLAF chargé : ${r.days} jour(s) travaillé(s) sur la période`, 'success');
+        this.ui.setConnection(await window.ICN_OLAF_PROXY.status());
       } else {
-        const detection = await window.ICN_OLAF.detectCible(login, pass);
-        if (!detection.ok) {
-          this.showStatus(statusEl, `❌ ${detection.error}`, 'error');
-          return;
-        }
-        cible = detection.cible;
+        this.ui.showStatus(r.error || 'Échec du chargement OLAF', 'error', { timeout: 8000 });
+        this.ui.setConnection(await window.ICN_OLAF_PROXY.status(true));
       }
-
-      // Lire le mois affiché depuis le DOM directement
-      const monthLabel = window.ICN_DOM.getMonthLabel();
-      const parser = new CielParser();
-      const parsed = parser.parseMonthLabel(monthLabel);
-      if (!parsed) {
-        this.showStatus(statusEl, '❌ Impossible de déterminer le mois', 'error');
-        return;
-      }
-
-      const { year, month } = parsed;
-
-      // Récupérer les données OLAF
-      const olafReport = await window.ICN_OLAF.buildReport({ login, pass, year, month, cible });
-      if (!olafReport.ok) {
-        this.showStatus(statusEl, `❌ ${olafReport.error}`, 'error');
-        return;
-      }
-
-      // Stocker les données OLAF en mémoire
-      const olafData = {};
-      for (const day of olafReport.days || []) {
-        olafData[day.day_str] = { alpha: day.alpha, beta: day.beta };
-      }
-      window.ICN_OUTLINE.setOlafData(olafData);
-
-      // Rafraîchir les contours via ICN_MAIN
-      await window.ICN_MAIN.applyAll();
-
-      this.showStatus(statusEl, '✅ Chargement terminé', 'success');
-    } catch (err) {
-      window.ICN_DEBUG.error('[ICN-PANEL] handleOlafLoad error:', err);
-      this.showStatus(statusEl, `❌ ${err.message}`, 'error');
+    } finally {
+      btn.disabled = false;
     }
   }
 
-  showStatus(element, message, type) {
-    if (!element) return;
-    element.textContent = message;
-    element.className = `icn-status-message ${type}`;
-    setTimeout(() => {
-      element.className = 'icn-status-message';
-    }, 3000);
-  }
-
-  // ========== CONFIGURATION DU CYCLE ==========
+  // ── Cycle ───────────────────────────────────────────────────────────────
 
   async initCycleConfig() {
-    const panel = this.ui.panel;
-    
-    // Charger la config actuelle
-    const config = await window.ICN_CONST.getCycleConfig();
-    
-    // Remplir la date de début
-    const startDateInput = document.getElementById('icn-cycle-start-date');
-    if (startDateInput) {
-      startDateInput.value = config.cycleStartDate;
-      
-      // Sauvegarder automatiquement au changement
-      startDateInput.addEventListener('change', async () => {
-        await this.autoSaveCycleConfig();
-      });
-    }
-    
-    // Sélectionner la longueur du cycle
-    const cycleLengthRadios = panel.querySelectorAll('input[name="cycle-length"]');
-    cycleLengthRadios.forEach(radio => {
-      radio.checked = (parseInt(radio.value) === config.cycleLength);
-      
-      // Sauvegarder automatiquement au changement + régénérer les boutons
-      radio.addEventListener('change', async () => {
-        this.updateWorkingDaysUI();
-        await this.autoSaveCycleConfig();
-      });
+    this.q('#icn-cycle-reset')?.addEventListener('click', async () => {
+      await window.ICN_STORAGE.remove(window.ICN_CONST.KEY_CYCLE_OVERRIDE);
+      await this.renderCycle();
+      await window.ICN_MAIN.applyAll();
     });
-    
-    // Générer les boutons de jours travaillés
-    this.updateWorkingDaysUI();
+    await this.renderCycle();
   }
 
-  updateWorkingDaysUI() {
-    const panel = this.ui.panel;
-    const container = document.getElementById('icn-working-days-container');
-    if (!container) return;
-    
-    // Récupérer la longueur du cycle sélectionnée
-    const selectedLength = parseInt(panel.querySelector('input[name="cycle-length"]:checked')?.value || 12);
-    
-    // Récupérer la config actuelle pour savoir quels jours sont cochés
-    window.ICN_CONST.getCycleConfig().then(config => {
-      container.innerHTML = '';
-      
-      for (let day = 1; day <= selectedLength; day++) {
-        const btn = document.createElement('label');
-        btn.className = 'icn-working-day-btn';
-
-        const label = document.createElement('span');
-        label.className = 'icn-mode-label';
-        label.textContent = day;
-        btn.dataset.day = day;
-        btn.appendChild(label);
-        if (config.workingDays.includes(day)) {
-          btn.classList.add('active');
-        }
-        
-        // Sauvegarder automatiquement au clic
-        btn.addEventListener('click', async () => {
-          btn.classList.toggle('active');
-          await this.autoSaveCycleConfig();
-        });
-        
-        container.appendChild(btn);
-      }
-    });
-  }
-
-  async autoSaveCycleConfig() {
-    const panel = this.ui.panel;
-    
-    // Récupérer les valeurs
-    const startDate = document.getElementById('icn-cycle-start-date')?.value;
-    const cycleLength = parseInt(panel.querySelector('input[name="cycle-length"]:checked')?.value || 12);
-    
-    // Récupérer les jours travaillés
-    const workingDayBtns = document.querySelectorAll('.icn-working-day-btn.active');
-    const workingDays = Array.from(workingDayBtns).map(btn => parseInt(btn.dataset.day)).sort((a, b) => a - b);
-    
-    // Validation silencieuse
-    if (!startDate || workingDays.length === 0) {
-      return;
+  async renderCycle() {
+    const cfg = await window.ICN_CONST.getCycleConfig();
+    const info = this.q('#icn-cycle-info');
+    const grid = this.q('#icn-working-days-container');
+    const reset = this.q('#icn-cycle-reset');
+    if (info) {
+      const src = cfg.source === 'uciel' ? 'lue dans ECLAIR' : 'par défaut (ECLAIR ne la publie pas)';
+      info.textContent = `Cycle de ${cfg.cycleLength} jours, config ${src}${cfg.overridden ? ', jours modifiés par vous' : ''}. Cliquez un jour pour le compter ou non comme travaillé.`;
     }
-    
-    // Sauvegarder
-    const config = {
-      cycleStartDate: startDate,
-      cycleLength: cycleLength,
-      workingDays: workingDays
-    };
-    
-    await window.ICN_STORAGE.set({ icn_cycle_config: config });
-    window.ICN_DEBUG.log('[ICN] Config cycle sauvegardée:', config);
-    await window.ICN_MAIN.applyAll();
+    if (reset) reset.style.display = cfg.overridden ? '' : 'none';
+    if (!grid) return;
+    grid.innerHTML = '';
+    for (let d = 1; d <= cfg.cycleLength; d++) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'icn-day-btn' + (cfg.workingDays.includes(d) ? ' active' : '');
+      b.dataset.day = d;
+      b.textContent = 'J' + d;
+      b.addEventListener('click', async () => {
+        b.classList.toggle('active');
+        const days = [...grid.querySelectorAll('.icn-day-btn.active')].map(x => parseInt(x.dataset.day, 10)).sort((a, c) => a - c);
+        if (!days.length) { b.classList.add('active'); return; }
+        await window.ICN_STORAGE.set({ [window.ICN_CONST.KEY_CYCLE_OVERRIDE]: { cycleLength: cfg.cycleLength, workingDays: days } });
+        await this.renderCycle();
+        await window.ICN_MAIN.applyAll();
+      });
+      grid.appendChild(b);
+    }
   }
 
-  // ========== MODE D'APPRENTISSAGE ==========
+  // ── Apprentissage ───────────────────────────────────────────────────────
 
-  async handleLearningModeChange(e) {
-    const newMode = e.target.value;
-    
-    // Deactivate old mode
-    if (this.learningMode !== 'normal') {
-      this.deactivateLearningMode();
-    }
-    
-    this.learningMode = newMode;
-    
-    // Activate new mode
-    const instructionsEl = this.ui.panel.querySelector('#icn-learning-instructions');
-    if (this.learningMode !== 'normal') {
+  setLearningMode(mode) {
+    const radio = this.ui.panel.querySelector(`input[name="learning-mode"][value="${mode}"]`);
+    if (radio) radio.checked = true;
+    if (this.learningMode !== 'normal') this.deactivateLearningMode();
+    this.learningMode = mode;
+    const hint = this.q('#icn-learning-instructions');
+    if (mode !== 'normal') {
       this.activateLearningMode();
-      if (instructionsEl) instructionsEl.style.display = 'block';
-    } else {
-      if (instructionsEl) instructionsEl.style.display = 'none';
+      if (hint) hint.style.display = 'block';
+    } else if (hint) {
+      hint.style.display = 'none';
     }
   }
 
   activateLearningMode() {
     this.learningClickHandler = (e) => this.handleLearningClick(e);
-    const cells = document.querySelectorAll('tbody td');
-    
-    cells.forEach(cell => {
-      cell.dataset.icnOldOnclick = cell.onclick ? 'true' : 'false';
-      cell.onclick = null;
-      cell.addEventListener('click', this.learningClickHandler);
-      cell.style.cursor = 'copy';
-    });
+    const table = window.ICN_DOM.getCielTable();
+    if (!table) return;
+    table.addEventListener('click', this.learningClickHandler, true);
+    table.classList.add('icn-learning');
+    table.style.cursor = 'copy';
   }
 
   deactivateLearningMode() {
-    if (this.learningClickHandler) {
-      const cells = document.querySelectorAll('tbody td');
-      cells.forEach(cell => {
-        cell.removeEventListener('click', this.learningClickHandler);
-        cell.style.cursor = '';
-      });
-      this.learningClickHandler = null;
+    const table = window.ICN_DOM.getCielTable();
+    if (table && this.learningClickHandler) {
+      table.removeEventListener('click', this.learningClickHandler, true);
+      table.classList.remove('icn-learning');
+      table.style.cursor = '';
     }
+    this.learningClickHandler = null;
   }
 
   async handleLearningClick(e) {
+    const cell = e.target.closest('tbody td');
+    if (!cell) return;
     e.stopPropagation();
     e.preventDefault();
-    
-    const cell = e.currentTarget;
-    const fondclasses = window.ICN_RULES.extractFondclassesFromTd(cell);
-    
-    if (fondclasses.size === 0) return;
-    
-    const fondclasse = Array.from(fondclasses)[0];
-    
+    const fcs = window.ICN_RULES.extractFondclassesFromTd(cell);
+    if (!fcs.size) { this.ui.showStatus('Cette case n’a pas de classe exploitable', 'error', { element: '#icn-status-message' }); return; }
+    const fc = [...fcs][0];
+    const R = window.ICN_RULES;
     if (this.learningMode === 'alpha') {
-      const alphaFondclasses = await window.ICN_RULES.loadAlphaFondclasses();
-      
-      if (alphaFondclasses.has(fondclasse)) {
-        await window.ICN_RULES.removeAlphaFondclasse(fondclasse);
-      } else {
-        await window.ICN_RULES.addAlphaFondclasse(fondclasse);
-      }
+      (await R.loadAlphaFondclasses()).has(fc) ? await R.removeAlphaFondclasse(fc) : await R.addAlphaFondclasse(fc);
     } else if (this.learningMode === 'beta') {
-      const betaFondclasses = await window.ICN_RULES.loadBetaFondclasses();
-      
-      if (betaFondclasses.has(fondclasse)) {
-        await window.ICN_RULES.removeBetaFondclasse(fondclasse);
-      } else {
-        await window.ICN_RULES.addBetaFondclasse(fondclasse);
-      }
+      (await R.loadBetaFondclasses()).has(fc) ? await R.removeBetaFondclasse(fc) : await R.addBetaFondclasse(fc);
     }
-    
     await this.updateLearningLists();
     await window.ICN_MAIN.applyAll();
   }
 
   async updateLearningLists() {
-    const alphaFondclasses = await window.ICN_RULES.loadAlphaFondclasses();
-    const betaFondclasses = await window.ICN_RULES.loadBetaFondclasses();
-    
-    // Update ALPHA
-    const alphaList = this.ui.panel.querySelector('#icn-alpha-list');
-    const alphaCount = this.ui.panel.querySelector('#icn-alpha-count');
-    
-    if (alphaCount) alphaCount.textContent = alphaFondclasses.size;
-    
-    if (alphaList) {
-      if (alphaFondclasses.size === 0) {
-        alphaList.innerHTML = '<div style="color: #9ca3af; text-align: center; padding: 8px;">Aucune classe</div>';
-      } else {
-        alphaList.innerHTML = '';
-        for (const fc of alphaFondclasses) {
-          const item = document.createElement('div');
-          item.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 4px 6px; border-bottom: 1px solid #f3f4f6;';
-          item.innerHTML = `
-            <span style="color: #10b981;">fondclasse${fc}</span>
-            <button class="icn-remove-fondclasse" data-type="alpha" data-fc="${fc}" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 14px;">×</button>
-          `;
-          alphaList.appendChild(item);
-        }
+    const render = async (type, load, remove) => {
+      const set = await load();
+      const list = this.q(`#icn-${type}-list`);
+      const count = this.q(`#icn-${type}-count`);
+      if (count) count.textContent = set.size;
+      if (!list) return;
+      list.innerHTML = '';
+      if (!set.size) { list.innerHTML = '<span class="icn-empty">Aucune classe apprise</span>'; return; }
+      for (const fc of set) {
+        const item = document.createElement('div');
+        item.className = 'icn-class-item';
+        item.innerHTML = `<code>fondclasse${fc}</code><button class="icn-class-remove" title="Retirer" type="button">×</button>`;
+        item.querySelector('button').addEventListener('click', async () => {
+          await remove(fc);
+          await this.updateLearningLists();
+          await window.ICN_MAIN.applyAll();
+        });
+        list.appendChild(item);
       }
-    }
-    
-    // Update BETA
-    const betaList = this.ui.panel.querySelector('#icn-beta-list');
-    const betaCount = this.ui.panel.querySelector('#icn-beta-count');
-    
-    if (betaCount) betaCount.textContent = betaFondclasses.size;
-    
-    if (betaList) {
-      if (betaFondclasses.size === 0) {
-        betaList.innerHTML = '<div style="color: #9ca3af; text-align: center; padding: 8px;">Aucune classe</div>';
-      } else {
-        betaList.innerHTML = '';
-        for (const fc of betaFondclasses) {
-          const item = document.createElement('div');
-          item.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 4px 6px; border-bottom: 1px solid #f3f4f6;';
-          item.innerHTML = `
-            <span style="color: #3b82f6;">fondclasse${fc}</span>
-            <button class="icn-remove-fondclasse" data-type="beta" data-fc="${fc}" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 14px;">×</button>
-          `;
-          betaList.appendChild(item);
-        }
-      }
-    }
-
-    // Add click handlers for remove buttons
-    this.ui.panel.querySelectorAll('.icn-remove-fondclasse').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        const type = e.currentTarget.dataset.type;
-        const fc = parseInt(e.currentTarget.dataset.fc);
-
-        if (type === 'alpha') {
-          await window.ICN_RULES.removeAlphaFondclasse(fc);
-        } else {
-          await window.ICN_RULES.removeBetaFondclasse(fc);
-        }
-
-        await this.updateLearningLists();
-        await window.ICN_MAIN.applyAll();
-      });
-    });
+    };
+    const R = window.ICN_RULES;
+    await render('alpha', R.loadAlphaFondclasses, R.removeAlphaFondclasse);
+    await render('beta', R.loadBetaFondclasses, R.removeBetaFondclasse);
   }
 }
 

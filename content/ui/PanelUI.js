@@ -1,180 +1,152 @@
 /**
- * Gestion de l'interface du panel
+ * Panneau flottant : création, drag, chargement des réglages, affichage d'état.
  */
 class PanelUI {
   constructor() {
     this.panel = null;
     this.settingsPanel = null;
-    this.isOpen = true;
   }
 
   async loadTemplate(filename) {
-    try {
-      const url = browser.runtime.getURL(`content/ui/templates/${filename}`);
-      const response = await fetch(url);
-      return await response.text();
-    } catch (error) {
-      window.ICN_DEBUG.error('[ICN-PANEL] ❌ Failed to load template:', filename, error);
-      throw new Error(`Failed to load template ${filename}: ${error.message}`);
-    }
+    const url = browser.runtime.getURL(`content/ui/templates/${filename}`);
+    const response = await fetch(url);
+    return await response.text();
   }
 
   async create() {
-    // Charger HTML et CSS
-    const html = await this.loadTemplate('panel.html');
-    const css = await this.loadTemplate('panel.css');
+    const [html, css] = await Promise.all([this.loadTemplate('panel.html'), this.loadTemplate('panel.css')]);
 
-    // Injecter CSS
     const style = document.createElement('style');
+    style.id = 'icn-panel-styles';
+    style.setAttribute('data-icn-ignore', '1');
     style.textContent = css;
     document.head.appendChild(style);
 
-    // Injecter HTML panel principal (avec settings panel dedans)
     const container = document.createElement('div');
     container.innerHTML = html;
     this.panel = container.firstElementChild;
+    this.panel.setAttribute('data-icn-ignore', '1');
     document.body.appendChild(this.panel);
 
-    // Référence au settings panel
     this.settingsPanel = this.panel.querySelector('#icn-settings-panel');
+    this.panel.querySelectorAll('details').forEach(d => { d.open = false; });
 
-    // Setup drag & drop
+    try {
+      const v = browser.runtime.getManifest().version;
+      const el = this.panel.querySelector('#icn-version');
+      if (el) el.textContent = 'v' + v;
+    } catch (e) { /* ignore */ }
+
     this.setupDrag();
-
-    // Charger les settings depuis storage
     await this.loadSettings();
-
     return this.panel;
   }
 
   setupDrag() {
     const header = this.panel.querySelector('#icn-panel-header');
-    let isDragging = false;
-    let dragOffset = { x: 0, y: 0 };
+    let dragging = false;
+    let off = { x: 0, y: 0 };
 
     header.addEventListener('mousedown', (e) => {
-      if (e.target.closest('.icn-btn-icon')) return;
-      
-      isDragging = true;
-      const rect = this.panel.getBoundingClientRect();
-      dragOffset.x = e.clientX - rect.left;
-      dragOffset.y = e.clientY - rect.top;
-      this.panel.style.transition = 'none';
+      if (e.target.closest('button')) return;
+      dragging = true;
+      const r = this.panel.getBoundingClientRect();
+      off = { x: e.clientX - r.left, y: e.clientY - r.top };
+      e.preventDefault();
     });
-
     document.addEventListener('mousemove', (e) => {
-      if (!isDragging) return;
-      
-      let x = e.clientX - dragOffset.x;
-      let y = e.clientY - dragOffset.y;
-
-      // Limites
-      x = Math.max(0, Math.min(x, window.innerWidth - this.panel.offsetWidth));
-      y = Math.max(0, Math.min(y, window.innerHeight - this.panel.offsetHeight));
-
+      if (!dragging) return;
+      const x = Math.max(0, Math.min(e.clientX - off.x, window.innerWidth - this.panel.offsetWidth));
+      const y = Math.max(0, Math.min(e.clientY - off.y, window.innerHeight - 40));
       this.panel.style.left = x + 'px';
       this.panel.style.top = y + 'px';
       this.panel.style.right = 'auto';
     });
-
     document.addEventListener('mouseup', () => {
-      if (isDragging) {
-        isDragging = false;
-        this.panel.style.transition = '';
-        const rect = this.panel.getBoundingClientRect();
-        window.ICN_STORAGE.set({ icn_panel_position: { x: rect.left, y: rect.top } });
-      }
+      if (!dragging) return;
+      dragging = false;
+      const r = this.panel.getBoundingClientRect();
+      window.ICN_STORAGE.set({ icn_panel_position: { x: r.left, y: r.top } });
     });
   }
 
   async loadSettings() {
-    const result = await window.ICN_STORAGE.get([
-      'icn_enabled',
-      'olaf_login',
-      'olaf_pass',
-      'olaf_remember',
-      'icn_olaf_autoload',
-      'icn_panel_position',
-      'icn_panel_state'
+    const r = await window.ICN_STORAGE.get([
+      'icn_enabled', 'olaf_login', 'olaf_pass', 'olaf_remember',
+      'icn_olaf_autoload', 'icn_panel_position', 'icn_panel_state'
     ]);
+    const q = (s) => this.panel.querySelector(s);
 
-    // Toggle contours
-    const toggleContours = this.panel.querySelector('#icn-contours-toggle');
-    const contoursStatus = this.panel.querySelector('#icn-contours-status');
-    if (toggleContours) {
-      const enabled = Boolean(result.icn_enabled);
-      toggleContours.checked = enabled;
-      
-      // Mettre à jour le texte de statut
-      if (contoursStatus) {
-        contoursStatus.textContent = enabled ? 'Actif' : 'Inactif';
-        contoursStatus.style.color = enabled ? '#10b981' : '#6b7280';
-      }
-    }
+    this.setEnabled(r.icn_enabled === undefined ? true : Boolean(r.icn_enabled), false);
 
-    // OLAF credentials
-    const loginInput = this.panel.querySelector('#icn-olaf-login');
-    const passInput = this.panel.querySelector('#icn-olaf-pass');
-    const rememberCheckbox = this.panel.querySelector('#icn-olaf-remember');
-    
-    if (loginInput) loginInput.value = result.olaf_login || '';
-    if (passInput && result.olaf_remember) passInput.value = result.olaf_pass || '';
-    if (rememberCheckbox) rememberCheckbox.checked = Boolean(result.olaf_remember);
+    if (q('#icn-olaf-login')) q('#icn-olaf-login').value = r.olaf_login || '';
+    if (q('#icn-olaf-pass')) q('#icn-olaf-pass').value = r.olaf_remember ? (r.olaf_pass || '') : '';
+    if (q('#icn-olaf-remember')) q('#icn-olaf-remember').checked = Boolean(r.olaf_remember);
+    if (q('#icn-olaf-autoload')) q('#icn-olaf-autoload').checked = r.icn_olaf_autoload === undefined ? true : Boolean(r.icn_olaf_autoload);
 
-    // Auto-load
-    const autoloadCheckbox = this.panel.querySelector('#icn-olaf-autoload');
-    if (autoloadCheckbox) autoloadCheckbox.checked = Boolean(result.icn_olaf_autoload);
-
-    // Position du panel
-    const pos = result.icn_panel_position;
-    if (pos) {
-      this.panel.style.left = pos.x + 'px';
-      this.panel.style.top  = pos.y + 'px';
+    const pos = r.icn_panel_position;
+    if (pos && Number.isFinite(pos.x) && Number.isFinite(pos.y)) {
+      this.panel.style.left = Math.min(pos.x, window.innerWidth - 60) + 'px';
+      this.panel.style.top = Math.min(pos.y, window.innerHeight - 60) + 'px';
       this.panel.style.right = 'auto';
     }
+    const state = r.icn_panel_state || {};
+    this.panel.classList.toggle('minimized', !!state.minimized);
+    if (this.settingsPanel) this.settingsPanel.classList.toggle('open', !!state.settingsOpen && !state.minimized);
+  }
 
-    // État (réduit ou non)
-    const state = result.icn_panel_state;
-    if (state?.minimized) {
-      this.panel.classList.add('minimized');
-    }
-    if (state?.settingsOpen) {
-      const settingsPanel = this.panel.querySelector('#icn-settings-panel');
-      if (settingsPanel) settingsPanel.classList.add('open');
+  /** Reflète l'état du toggle contours (sans déclencher l'apply). */
+  setEnabled(enabled, updateInput = true) {
+    const toggle = this.panel.querySelector('#icn-contours-toggle');
+    const chip = this.panel.querySelector('#icn-contours-status');
+    if (toggle && updateInput) toggle.checked = enabled;
+    if (toggle && !updateInput) toggle.checked = enabled;
+    if (chip) {
+      chip.textContent = enabled ? 'Actif' : 'Inactif';
+      chip.classList.toggle('on', enabled);
     }
   }
 
-  toggle() {
-    this.isOpen = !this.isOpen;
-    this.panel.classList.toggle('icn-hidden', !this.isOpen);
+  /** État de connexion OLAF : { connected, prenom, nom, reason, mode } | 'busy' */
+  setConnection(status) {
+    const wrap = this.panel.querySelector('#icn-olaf-conn');
+    const text = this.panel.querySelector('#icn-olaf-conn-text');
+    if (!wrap || !text) return;
+    wrap.classList.remove('ok', 'ko', 'busy');
+    if (status === 'busy') {
+      wrap.classList.add('busy');
+      text.textContent = 'vérification…';
+      return;
+    }
+    if (status && status.connected) {
+      wrap.classList.add('ok');
+      const who = [status.prenom, status.nom].filter(Boolean).join(' ');
+      text.textContent = who ? `connecté · ${who}` : 'connecté';
+      wrap.title = status.mode === 'creds' ? 'Connecté avec les identifiants du panneau' : 'Connecté via votre session OLAF';
+    } else {
+      wrap.classList.add('ko');
+      text.textContent = 'non connecté';
+      wrap.title = (status && status.reason) || 'Ouvrez OLAF et connectez-vous, ou saisissez vos identifiants';
+    }
   }
 
-  showStatus(message, type = 'info') {
-    const statusEl = this.panel.querySelector('#icn-status-message');
-    if (!statusEl) return;
-
-    statusEl.textContent = message;
-    statusEl.className = `p-3 rounded-lg text-sm font-medium status-${type}`;
-    statusEl.classList.remove('hidden');
-
-    setTimeout(() => {
-      statusEl.classList.add('hidden');
-    }, 3000);
+  showStatus(message, type = 'info', { element = '#icn-olaf-status', timeout = 4000 } = {}) {
+    const el = this.panel.querySelector(element);
+    if (!el) return;
+    el.textContent = message;
+    el.className = `icn-feedback ${type}`;
+    clearTimeout(el._icnTimer);
+    if (timeout) el._icnTimer = setTimeout(() => { el.className = 'icn-feedback'; }, timeout);
   }
 
   getCredentials() {
-    const loginInput = this.panel.querySelector('#icn-olaf-login');
-    const passInput = this.panel.querySelector('#icn-olaf-pass');
-    const rememberCheckbox = this.panel.querySelector('#olaf-remember');
-
-    return {
-      login: loginInput?.value?.trim() || '',
-      pass: passInput?.value || '',
-      remember: rememberCheckbox?.checked || false
-    };
+    const login = this.panel.querySelector('#icn-olaf-login')?.value?.trim() || '';
+    const pass = this.panel.querySelector('#icn-olaf-pass')?.value || '';
+    const remember = this.panel.querySelector('#icn-olaf-remember')?.checked || false;
+    return { login, pass, remember };
   }
 
-  async saveCredentials(login, pass, remember) {
+  async saveCredentials({ login, pass, remember }) {
     await window.ICN_STORAGE.set({
       olaf_login: login,
       olaf_pass: remember ? pass : '',

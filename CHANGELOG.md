@@ -6,6 +6,22 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ## [Unreleased]
+
+## [0.5.0] - 2026-10-26
+
+### Changed
+- **Compatibilité ECLAIR** : CIEL est devenu ECLAIR (`uciel.php`, période libre rechargée en AJAX). L'extension cible la nouvelle page, lit les dates et les numéros de cycle directement dans le cahier (`data-date`, `data-ciel-jc`) et se réapplique à chaque rechargement de grille (`uciel:grid-updated`).
+- **Manifest V3 commun Chrome / Edge / Firefox** (Firefox ≥ 121). Les appels OLAF passent par un script d'arrière-plan (CORS).
+- **OLAF via la session du navigateur** : si vous êtes connecté à OLAF dans un onglet, aucun identifiant n'est nécessaire. Les identifiants restent possibles en option.
+- **Cycle de travail lu dans ECLAIR** : plus de date J1 ni de longueur à saisir, seuls les jours comptés comme travaillés restent modifiables.
+- **Cases fusionnées** : l'extension défusionne/refusionne les sigles via les hooks d'ECLAIR pour peindre chaque jour.
+- **Nouvelle interface** du panneau (état de connexion OLAF, légende, volet paramètres).
+- Pont de détection ECLAIR : l'extension se déclare à la page (bandeau « OLAF Check » pour les rôles qui le voient).
+
+### Removed
+- Lignes de totaux ALPHA/BETA (ECLAIR affiche désormais ses propres lignes α/β).
+- Client cycle OLAF (`getCycle.php`), parseur de libellé de mois.
+
 ## [0.4.0] - 2026-05-16
 - **Ajout du module d'envoi de congé** : Module à priori fonctionnel, va falloir tester
 
